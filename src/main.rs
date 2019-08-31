@@ -1,10 +1,11 @@
+use std::fmt;
 use std::fs;
 use std::path::PathBuf;
 use std::str;
 
 use regex::Regex;
 use structopt::StructOpt;
-use toml_edit::{Document, value};
+use toml_edit::{Document, Item};
 
 #[derive(StructOpt)]
 enum Args {
@@ -41,11 +42,24 @@ fn get(path: PathBuf, mut query: &str) -> Result<(), Box<dyn std::error::Error>>
             break;
         }
     }
-    println!("{:#?}", item);
+    println!("{}", DisplayItem{ inner: item });
 
     /*
     doc["package"]["foo"] = value("bar");
     println!("{}", doc.to_string());
     */
     Ok(())
+}
+
+struct DisplayItem<'a> { inner: &'a toml_edit::Item }
+
+impl fmt::Display for DisplayItem<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self.inner {
+            Item::Value(v) => write!(f, "{}", v),
+            Item::Table(t) => write!(f, "{}", t),
+//            Item::ArrayOfTables(a) => write!(f, "{}", a),
+            _ => Ok(()),
+        }
+    }
 }
