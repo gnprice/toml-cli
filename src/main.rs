@@ -29,11 +29,18 @@ fn get(path: PathBuf, mut query: &str) -> Result<(), Box<dyn std::error::Error>>
     let mut item = &doc.root;
 
     let re_byname = Regex::new(r"\A\.(\w+)").unwrap();
-    while let Some(cap) = re_byname.captures(&query) {
-        item = &item[cap.get(1).unwrap().as_str()];
-        query = &query[cap.get(0).unwrap().end()..];
+    let re_bynum = Regex::new(r"\A\[(\d+)\]").unwrap();
+    loop {
+        if let Some(cap) = re_byname.captures(&query) {
+            item = &item[cap.get(1).unwrap().as_str()];
+            query = &query[cap.get(0).unwrap().end()..];
+        } else if let Some(cap) = re_bynum.captures(&query) {
+            item = &item[cap.get(1).unwrap().as_str().parse::<usize>().unwrap()];
+            query = &query[cap.get(0).unwrap().end()..];
+        } else {
+            break;
+        }
     }
-    // TODO: [0]
     println!("{:#?}", item);
 
     /*
