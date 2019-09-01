@@ -70,8 +70,6 @@ fn set(path: PathBuf, query: &str, value_str: &str) -> Result<(), Error> {
     use QueryComponent::{Name, Num};
     while let Some(qc) = query.first() {
         query = &query[1..]; // TODO simplify to `for`, unless end up needing a tail
-
-        // TODO simplify this code
         match qc {
             Num(n) => {
                 let len = match &item {
@@ -84,15 +82,13 @@ fn set(path: PathBuf, query: &str, value_str: &str) -> Result<(), Error> {
                 }
                 item = &mut item[n];
             }
-            Name(n) => match &item {
-                Item::Table(_) | Item::Value(Value::InlineTable(_)) => {
-                    item = &mut item[n];
-                },
-                _ => {
+            Name(n) => {
+                match &item {
+                    Item::Table(_) | Item::Value(Value::InlineTable(_)) => (),
                     // TODO make this more directly construct the new, inner part?
-                    *item = Item::None;
-                    item = &mut item[n];
-                }
+                    _ => *item = Item::None,
+                };
+                item = &mut item[n];
             }
         }
     }
