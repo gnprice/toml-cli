@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::str;
 
 use regex::Regex;
-use serde::ser::{Serialize, SerializeMap, Serializer};
+use serde::ser::{Serialize, SerializeMap, Serializer, SerializeSeq};
 use structopt::StructOpt;
 use toml_edit::{Document, Item};
 
@@ -70,7 +70,6 @@ impl Serialize for JsonItem<'_> {
                 }
                 map.end()
             }
-//            Item::ArrayOfTables(a) => write!(f, "{}", a),
             _ => "UNIMPLEMENTED".serialize(serializer),
         }
     }
@@ -84,6 +83,20 @@ impl Serialize for JsonValue<'_> {
     {
         if let Some(s) = self.inner.as_str() {
             s.serialize(serializer)
+        } else if let Some(i) = self.inner.as_integer() {
+            i.serialize(serializer)
+        } else if let Some(arr) = self.inner.as_array() {
+            let mut seq = serializer.serialize_seq(Some(arr.len()))?;
+            for e in arr.iter() {
+                seq.serialize_element(&JsonValue{ inner: e })?;
+            }
+            seq.end()
+        } else if let Some(t) = self.inner.as_inline_table() {
+            let mut map = serializer.serialize_map(Some(t.len()))?;
+            for (k, v) in t.iter() {
+                map.serialize_entry(k, &JsonValue{ inner: v })?;
+            }
+            map.end()
         } else {
             "UNIMPLEMENTED".serialize(serializer)
         }
