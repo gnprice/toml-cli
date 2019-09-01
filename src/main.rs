@@ -42,7 +42,6 @@ fn get(path: PathBuf, mut query: &str) -> Result<(), Box<dyn std::error::Error>>
             break;
         }
     }
-//    println!("{:#?}", item);
     println!("{}", serde_json::to_string(&JsonItem{ inner: item })?);
 
     /*
@@ -71,7 +70,7 @@ impl Serialize for JsonItem<'_> {
                 }
                 seq.end()
             }
-            _ => "UNIMPLEMENTED".serialize(serializer),
+            Item::None => serializer.serialize_none(),
         }
     }
 }
@@ -96,10 +95,16 @@ impl Serialize for JsonValue<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where S: Serializer,
     {
-        if let Some(s) = self.inner.as_str() {
-            s.serialize(serializer)
-        } else if let Some(i) = self.inner.as_integer() {
-            i.serialize(serializer)
+        if let Some(v) = self.inner.as_integer() {
+            v.serialize(serializer)
+        } else if let Some(v) = self.inner.as_float() {
+            v.serialize(serializer)
+        } else if let Some(v) = self.inner.as_bool() {
+            v.serialize(serializer)
+        } else if let Some(v) = self.inner.as_str() {
+            v.serialize(serializer)
+        } else if let Some(_) = self.inner.as_date_time() {
+            "UNIMPLEMENTED: DateTime".serialize(serializer) // TODO
         } else if let Some(arr) = self.inner.as_array() {
             let mut seq = serializer.serialize_seq(Some(arr.len()))?;
             for e in arr.iter() {
@@ -113,7 +118,7 @@ impl Serialize for JsonValue<'_> {
             }
             map.end()
         } else {
-            "UNIMPLEMENTED".serialize(serializer)
+            panic!("unknown variant of toml_edit::Value");
         }
     }
 }
