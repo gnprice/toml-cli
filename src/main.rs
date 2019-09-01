@@ -25,28 +25,14 @@ fn main() -> Result<(), Box<dyn std::error::Error + 'static>> {
     }
 }
 
-fn get(path: PathBuf, mut query: &str) -> Result<(), Box<dyn std::error::Error>> {
+fn get(path: PathBuf, query: &str) -> Result<(), Box<dyn std::error::Error>> {
     // TODO: better report errors like ENOENT
     let data = fs::read(path)?;
     let data = str::from_utf8(&data)?;
     let doc = data.parse::<Document>()?;
-    let mut item = &doc.root;
 
-    let re_byname = Regex::new(r"\A\.(\w+)").unwrap();
-    let re_bynum = Regex::new(r"\A\[(\d+)\]").unwrap();
-    loop {
-        // TODO: '.' for everything (i.e. synonym of '')
-        // TODO: decent errors on malformed queries (prob. parse first, then query)
-        if let Some(cap) = re_byname.captures(&query) {
-            item = &item[cap.get(1).unwrap().as_str()];
-            query = &query[cap.get(0).unwrap().end()..];
-        } else if let Some(cap) = re_bynum.captures(&query) {
-            item = &item[cap.get(1).unwrap().as_str().parse::<usize>().unwrap()];
-            query = &query[cap.get(0).unwrap().end()..];
-        } else {
-            break;
-        }
-    }
+    let item = walk_query(&doc.root, query)?;
+
     // TODO: support shell-friendly output like `jq -r`
     println!("{}", serde_json::to_string(&JsonItem(item))?);
 
@@ -55,6 +41,33 @@ fn get(path: PathBuf, mut query: &str) -> Result<(), Box<dyn std::error::Error>>
     println!("{}", doc.to_string());
     */
     Ok(())
+}
+
+fn walk_query<'a>(mut item: &'a toml_edit::Item, mut query: &str)
+              -> Result<&'a toml_edit::Item, Box<dyn std::error::Error>> {
+    if query == "." {
+        return Ok(item);
+    }
+
+    let re_byname = Regex::new(r"\A\.(\w+)").unwrap();
+    let re_bynum = Regex::new(r"\A\[(\d+)\]").unwrap();
+    loop {
+        // TODO: decent errors on malformed queries (prob. parse first, then query)
+        if let Some(cap) = re_byname.captures(&query) {
+            item = &item[cap.get(1).unwrap().as_str()];
+            query = &query[cap.get(0).unwrap().end()..];
+        } else if let Some(cap) = re_bynum.captures(&query) {
+            item = &item[cap.get(1).unwrap().as_str().parse::<usize>().unwrap()];
+            query = &query[cap.get(0).unwrap().end()..];
+        } else if query == "" {
+            break;
+        } else {
+            return Err(Box::new(
+                std::io::Error::new(std::io::ErrorKind::InvalidInput, "bad query")));
+        }
+    }
+
+    Ok(item)
 }
 
 // TODO Can we do newtypes more cleanly than this?
