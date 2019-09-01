@@ -48,7 +48,7 @@ fn get(path: PathBuf, mut query: &str) -> Result<(), Box<dyn std::error::Error>>
         }
     }
     // TODO: support shell-friendly output like `jq -r`
-    println!("{}", serde_json::to_string(&JsonItem{ inner: item })?);
+    println!("{}", serde_json::to_string(&JsonItem(item))?);
 
     /*
     doc["package"]["foo"] = value("bar");
@@ -57,20 +57,20 @@ fn get(path: PathBuf, mut query: &str) -> Result<(), Box<dyn std::error::Error>>
     Ok(())
 }
 
-// TODO Surely there's a less noisy way to do newtypes than this `.inner` stuff.
-struct JsonItem<'a> { inner: &'a toml_edit::Item }
+// TODO Can we do newtypes more cleanly than this?
+struct JsonItem<'a>(&'a toml_edit::Item);
 
 impl Serialize for JsonItem<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where S: Serializer,
     {
-        match self.inner {
-            Item::Value(v) => JsonValue{ inner: v }.serialize(serializer),
-            Item::Table(t) => JsonTable{ inner: t }.serialize(serializer),
+        match self.0 {
+            Item::Value(v) => JsonValue(v).serialize(serializer),
+            Item::Table(t) => JsonTable(t).serialize(serializer),
             Item::ArrayOfTables(a) => {
                 let mut seq = serializer.serialize_seq(Some(a.len()))?;
                 for t in a.iter() {
-                    seq.serialize_element(&JsonTable{ inner: t })?;
+                    seq.serialize_element(&JsonTable(t))?;
                 }
                 seq.end()
             }
@@ -79,46 +79,46 @@ impl Serialize for JsonItem<'_> {
     }
 }
 
-struct JsonTable<'a> { inner: &'a toml_edit::Table }
+struct JsonTable<'a>(&'a toml_edit::Table);
 
 impl Serialize for JsonTable<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where S: Serializer,
     {
-        let mut map = serializer.serialize_map(Some(self.inner.len()))?;
-        for (k, v) in self.inner.iter() {
-            map.serialize_entry(k, &JsonItem{ inner: v })?;
+        let mut map = serializer.serialize_map(Some(self.0.len()))?;
+        for (k, v) in self.0.iter() {
+            map.serialize_entry(k, &JsonItem(v))?;
         }
         map.end()
     }
 }
 
-struct JsonValue<'a> { inner: &'a toml_edit::Value }
+struct JsonValue<'a>(&'a toml_edit::Value);
 
 impl Serialize for JsonValue<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where S: Serializer,
     {
-        if let Some(v) = self.inner.as_integer() {
+        if let Some(v) = self.0.as_integer() {
             v.serialize(serializer)
-        } else if let Some(v) = self.inner.as_float() {
+        } else if let Some(v) = self.0.as_float() {
             v.serialize(serializer)
-        } else if let Some(v) = self.inner.as_bool() {
+        } else if let Some(v) = self.0.as_bool() {
             v.serialize(serializer)
-        } else if let Some(v) = self.inner.as_str() {
+        } else if let Some(v) = self.0.as_str() {
             v.serialize(serializer)
-        } else if let Some(_) = self.inner.as_date_time() {
+        } else if let Some(_) = self.0.as_date_time() {
             "UNIMPLEMENTED: DateTime".serialize(serializer) // TODO
-        } else if let Some(arr) = self.inner.as_array() {
+        } else if let Some(arr) = self.0.as_array() {
             let mut seq = serializer.serialize_seq(Some(arr.len()))?;
             for e in arr.iter() {
-                seq.serialize_element(&JsonValue{ inner: e })?;
+                seq.serialize_element(&JsonValue(e))?;
             }
             seq.end()
-        } else if let Some(t) = self.inner.as_inline_table() {
+        } else if let Some(t) = self.0.as_inline_table() {
             let mut map = serializer.serialize_map(Some(t.len()))?;
             for (k, v) in t.iter() {
-                map.serialize_entry(k, &JsonValue{ inner: v })?;
+                map.serialize_entry(k, &JsonValue(v))?;
             }
             map.end()
         } else {
