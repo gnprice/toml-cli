@@ -6,7 +6,7 @@ use failure::{Error, Fail};
 use regex::Regex;
 use serde::ser::{Serialize, SerializeMap, Serializer, SerializeSeq};
 use structopt::StructOpt;
-use toml_edit::{Document, Item};
+use toml_edit::{Document, Item, value};
 
 #[derive(StructOpt)]
 enum Args {
@@ -15,7 +15,12 @@ enum Args {
         path: PathBuf,
         query: String,
     },
-    // TODO: set
+    Set {
+        #[structopt(parse(from_os_str))]
+        path: PathBuf,
+        query: String,
+        value_str: String, // TODO more forms
+    },
     // TODO: append/add (name TBD)
 }
 
@@ -29,27 +34,54 @@ fn main() -> Result<(), Error> {
     let args = Args::from_args();
     match args {
         Args::Get { path, query } => get(path, &query)?,
+        Args::Set { path, query, value_str } => set(path, &query, &value_str)?,
     }
     Ok(())
 }
 
-fn get(path: PathBuf, query: &str) -> Result<(), Error> {
-    let query = parse_query(query)?;
-
+fn read_parse(path: PathBuf) -> Result<Document, Error> {
     // TODO: better report errors like ENOENT
     let data = fs::read(path)?;
     let data = str::from_utf8(&data)?;
-    let doc = data.parse::<Document>()?;
+    Ok(data.parse::<Document>()?)
+}
 
+fn get(path: PathBuf, query: &str) -> Result<(), Error> {
+    let query = parse_query(query)?;
+    let doc = read_parse(path)?;
     let item = walk_query(&doc.root, &query);
 
     // TODO: support shell-friendly output like `jq -r`
     println!("{}", serde_json::to_string(&JsonItem(item))?);
 
-    /*
-    doc["package"]["foo"] = value("bar");
+    Ok(())
+}
+
+fn set(path: PathBuf, query: &str, value_str: &str) -> Result<(), Error> {
+    let query = parse_query(query)?;
+    let mut doc = read_parse(path)?;
+
+    let mut item = &mut doc.root;
+    let mut query = &query.0[..];
+    loop {
+        // TODO simplify unless this usefully grows
+        // TODO these &mut indexes panic when wrong type
+        match (query.first(), &item) {
+            (None, _) => break,
+            (Some(QueryComponent::Name(n)), _) => {
+                item = &mut item[n];
+                query = &query[1..];
+            }
+            (Some(QueryComponent::Num(n)), _) => {
+                item = &mut item[n]; // TODO this panics on out-of-bounds
+                query = &query[1..];
+            }
+        }
+    }
+    *item = value(value_str);
+
+    // TODO actually write back
     println!("{}", doc.to_string());
-    */
     Ok(())
 }
 
