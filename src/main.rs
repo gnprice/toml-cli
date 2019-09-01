@@ -14,6 +14,8 @@ enum Args {
         path: PathBuf,
         query: String,
     },
+    // TODO: set
+    // TODO: append/add (name TBD)
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error + 'static>> {
@@ -24,6 +26,7 @@ fn main() -> Result<(), Box<dyn std::error::Error + 'static>> {
 }
 
 fn get(path: PathBuf, mut query: &str) -> Result<(), Box<dyn std::error::Error>> {
+    // TODO: better report errors like ENOENT
     let data = fs::read(path)?;
     let data = str::from_utf8(&data)?;
     let doc = data.parse::<Document>()?;
@@ -32,6 +35,8 @@ fn get(path: PathBuf, mut query: &str) -> Result<(), Box<dyn std::error::Error>>
     let re_byname = Regex::new(r"\A\.(\w+)").unwrap();
     let re_bynum = Regex::new(r"\A\[(\d+)\]").unwrap();
     loop {
+        // TODO: '.' for everything (i.e. synonym of '')
+        // TODO: decent errors on malformed queries (prob. parse first, then query)
         if let Some(cap) = re_byname.captures(&query) {
             item = &item[cap.get(1).unwrap().as_str()];
             query = &query[cap.get(0).unwrap().end()..];
@@ -42,6 +47,7 @@ fn get(path: PathBuf, mut query: &str) -> Result<(), Box<dyn std::error::Error>>
             break;
         }
     }
+    // TODO: support shell-friendly output like `jq -r`
     println!("{}", serde_json::to_string(&JsonItem{ inner: item })?);
 
     /*
@@ -51,14 +57,12 @@ fn get(path: PathBuf, mut query: &str) -> Result<(), Box<dyn std::error::Error>>
     Ok(())
 }
 
-
-
+// TODO Surely there's a less noisy way to do newtypes than this `.inner` stuff.
 struct JsonItem<'a> { inner: &'a toml_edit::Item }
 
 impl Serialize for JsonItem<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
+    where S: Serializer,
     {
         match self.inner {
             Item::Value(v) => JsonValue{ inner: v }.serialize(serializer),
