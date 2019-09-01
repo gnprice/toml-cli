@@ -30,6 +30,8 @@ enum CliError {
     BadQuery(),
     #[fail(display = "numeric index into non-array")]
     NotArray(),
+    #[fail(display = "array index out of bounds")]
+    ArrayIndexOob(),
 }
 
 fn main() -> Result<(), Error> {
@@ -71,11 +73,16 @@ fn set(path: PathBuf, query: &str, value_str: &str) -> Result<(), Error> {
 
         // TODO simplify this code
         match qc {
-            Num(n) => match &item {
-                Item::ArrayOfTables(_) | Item::Value(Value::Array(_)) => {
-                    item = &mut item[n]; // TODO this panics on out-of-bounds
+            Num(n) => {
+                let len = match &item {
+                    Item::ArrayOfTables(a) => a.len(),
+                    Item::Value(Value::Array(a)) => a.len(),
+                    _ => Err(CliError::NotArray())?,
+                };
+                if n >= &len {
+                    Err(CliError::ArrayIndexOob())?;
                 }
-                _ => Err(CliError::NotArray())?,
+                item = &mut item[n];
             }
             Name(n) => match &item {
                 Item::Table(_) | Item::Value(Value::InlineTable(_)) => {
