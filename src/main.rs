@@ -34,12 +34,14 @@ fn main() -> Result<(), Error> {
 }
 
 fn get(path: PathBuf, query: &str) -> Result<(), Error> {
+    let query = parse_query(query)?;
+
     // TODO: better report errors like ENOENT
     let data = fs::read(path)?;
     let data = str::from_utf8(&data)?;
     let doc = data.parse::<Document>()?;
 
-    let item = walk_query(&doc.root, query)?;
+    let item = walk_query(&doc.root, &query);
 
     // TODO: support shell-friendly output like `jq -r`
     println!("{}", serde_json::to_string(&JsonItem(item))?);
@@ -51,29 +53,50 @@ fn get(path: PathBuf, query: &str) -> Result<(), Error> {
     Ok(())
 }
 
-fn walk_query<'a>(mut item: &'a toml_edit::Item, mut query: &str)
-              -> Result<&'a toml_edit::Item, CliError> {
+struct Query<'a>(Vec<QueryComponent<'a>>);
+
+enum QueryComponent<'a> {
+    Name(&'a str),
+    Num(usize),
+}
+
+fn parse_query(mut query: &str) -> Result<Query, CliError> {
+    let mut r = Query(vec![]);
+
     if query == "." {
-        return Ok(item);
+        return Ok(r);
     }
 
     let re_byname = Regex::new(r"\A\.(\w+)").unwrap();
     let re_bynum = Regex::new(r"\A\[(\d+)\]").unwrap();
     loop {
         if let Some(cap) = re_byname.captures(&query) {
-            item = &item[cap.get(1).unwrap().as_str()];
+            r.0.push(QueryComponent::Name(cap.get(1).unwrap().as_str()));
             query = &query[cap.get(0).unwrap().end()..];
         } else if let Some(cap) = re_bynum.captures(&query) {
-            item = &item[cap.get(1).unwrap().as_str().parse::<usize>().unwrap()];
+            r.0.push(QueryComponent::Num(
+                cap.get(1).unwrap().as_str().parse::<usize>().unwrap()));
             query = &query[cap.get(0).unwrap().end()..];
         } else if query == "" {
             break;
         } else {
-            Err(CliError::BadQuery())?; // TODO: better message (perh. parse first?)
+            Err(CliError::BadQuery())?; // TODO: better message
         }
     }
 
-    Ok(item)
+    Ok(r)
+}
+
+fn walk_query<'a>(mut item: &'a toml_edit::Item, query: &Query)
+              -> &'a toml_edit::Item {
+    for qc in &query.0 {
+        match qc {
+            QueryComponent::Name(n) => item = &item[n],
+            QueryComponent::Num(n) => item = &item[n],
+        }
+    }
+
+    item
 }
 
 // TODO Can we do newtypes more cleanly than this?
