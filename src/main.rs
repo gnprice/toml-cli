@@ -74,8 +74,11 @@ fn parse_query(mut query: &str) -> Result<Query, CliError> {
             r.0.push(QueryComponent::Name(cap.get(1).unwrap().as_str()));
             query = &query[cap.get(0).unwrap().end()..];
         } else if let Some(cap) = re_bynum.captures(&query) {
-            r.0.push(QueryComponent::Num(
-                cap.get(1).unwrap().as_str().parse::<usize>().unwrap()));
+            let n = match cap.get(1).unwrap().as_str().parse::<usize>() {
+                Err(_) => Err(CliError::BadQuery())?, // TODO: specific message
+                Ok(n) => n,
+            };
+            r.0.push(QueryComponent::Num(n));
             query = &query[cap.get(0).unwrap().end()..];
         } else if query == "" {
             break;
