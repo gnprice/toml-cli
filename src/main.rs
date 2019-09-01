@@ -2,6 +2,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::str;
 
+use failure::{Error, Fail};
 use regex::Regex;
 use serde::ser::{Serialize, SerializeMap, Serializer, SerializeSeq};
 use structopt::StructOpt;
@@ -18,14 +19,21 @@ enum Args {
     // TODO: append/add (name TBD)
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error + 'static>> {
-    let args = Args::from_args();
-    match args {
-        Args::Get { path, query } => get(path, &query),
-    }
+#[derive(Debug, Fail)]
+enum CliError {
+    #[fail(display = "bad query")]
+    BadQuery(),
 }
 
-fn get(path: PathBuf, query: &str) -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<(), Error> {
+    let args = Args::from_args();
+    match args {
+        Args::Get { path, query } => get(path, &query)?,
+    }
+    Ok(())
+}
+
+fn get(path: PathBuf, query: &str) -> Result<(), Error> {
     // TODO: better report errors like ENOENT
     let data = fs::read(path)?;
     let data = str::from_utf8(&data)?;
@@ -44,7 +52,7 @@ fn get(path: PathBuf, query: &str) -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn walk_query<'a>(mut item: &'a toml_edit::Item, mut query: &str)
-              -> Result<&'a toml_edit::Item, Box<dyn std::error::Error>> {
+              -> Result<&'a toml_edit::Item, CliError> {
     if query == "." {
         return Ok(item);
     }
@@ -52,7 +60,6 @@ fn walk_query<'a>(mut item: &'a toml_edit::Item, mut query: &str)
     let re_byname = Regex::new(r"\A\.(\w+)").unwrap();
     let re_bynum = Regex::new(r"\A\[(\d+)\]").unwrap();
     loop {
-        // TODO: decent errors on malformed queries (prob. parse first, then query)
         if let Some(cap) = re_byname.captures(&query) {
             item = &item[cap.get(1).unwrap().as_str()];
             query = &query[cap.get(0).unwrap().end()..];
@@ -62,8 +69,7 @@ fn walk_query<'a>(mut item: &'a toml_edit::Item, mut query: &str)
         } else if query == "" {
             break;
         } else {
-            return Err(Box::new(
-                std::io::Error::new(std::io::ErrorKind::InvalidInput, "bad query")));
+            Err(CliError::BadQuery())?; // TODO: better message (perh. parse first?)
         }
     }
 
