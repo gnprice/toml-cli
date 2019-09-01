@@ -63,18 +63,17 @@ fn set(path: PathBuf, query: &str, value_str: &str) -> Result<(), Error> {
 
     let mut item = &mut doc.root;
     let mut query = &query.0[..];
-    loop {
+    while let Some(qc) = query.first() {
+        query = &query[1..]; // TODO simplify to `for`, unless end up needing a tail
+
         // TODO simplify unless this usefully grows
         // TODO these &mut indexes panic when wrong type
-        match (query.first(), &item) {
-            (None, _) => break,
-            (Some(QueryComponent::Name(n)), _) => {
+        match (qc, &item) {
+            (QueryComponent::Name(n), _) => {
                 item = &mut item[n];
-                query = &query[1..];
             }
-            (Some(QueryComponent::Num(n)), _) => {
+            (QueryComponent::Num(n), _) => {
                 item = &mut item[n]; // TODO this panics on out-of-bounds
-                query = &query[1..];
             }
         }
     }
