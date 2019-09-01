@@ -63,15 +63,30 @@ impl Serialize for JsonItem<'_> {
     {
         match self.inner {
             Item::Value(v) => JsonValue{ inner: v }.serialize(serializer),
-            Item::Table(t) => {
-                let mut map = serializer.serialize_map(Some(t.len()))?;
-                for (k, v) in t.iter() {
-                    map.serialize_entry(k, &JsonItem{ inner: v })?;
+            Item::Table(t) => JsonTable{ inner: t }.serialize(serializer),
+            Item::ArrayOfTables(a) => {
+                let mut seq = serializer.serialize_seq(Some(a.len()))?;
+                for t in a.iter() {
+                    seq.serialize_element(&JsonTable{ inner: t })?;
                 }
-                map.end()
+                seq.end()
             }
             _ => "UNIMPLEMENTED".serialize(serializer),
         }
+    }
+}
+
+struct JsonTable<'a> { inner: &'a toml_edit::Table }
+
+impl Serialize for JsonTable<'_> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where S: Serializer,
+    {
+        let mut map = serializer.serialize_map(Some(self.inner.len()))?;
+        for (k, v) in self.inner.iter() {
+            map.serialize_entry(k, &JsonItem{ inner: v })?;
+        }
+        map.end()
     }
 }
 
