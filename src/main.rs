@@ -61,19 +61,21 @@ fn read_parse(path: PathBuf) -> Result<Document, Error> {
 fn get(path: PathBuf, query: &str, opts: GetOpts) -> Result<(), Error> {
     let query = parse_query(query)?;
     let doc = read_parse(path)?;
-    let item = walk_query(&doc.root, &query);
 
     if opts.output_toml {
-        print_as_toml(&item);
+        print_toml_fragment(&doc, &query.0);
     } else {
+        let item = walk_tpath(&doc.root, &query.0);
         // TODO: support shell-friendly output like `jq -r`
         println!("{}", serde_json::to_string(&JsonItem(item))?);
     }
     Ok(())
 }
 
-fn print_as_toml(item: &Item) -> () {
-    // TODO really need to use query -- makes no sense to print without that
+fn print_toml_fragment(doc: &Document, tpath: &[TpathComponent]) -> () {
+    let item = walk_tpath(&doc.root, tpath);
+
+    // TODO really need to use tpath -- makes no sense to print without that
     let mut doc = Document::new();
     match item {
         Item::Table(_) => doc.root = item.clone(),
@@ -99,7 +101,7 @@ fn set(path: PathBuf, query: &str, value_str: &str) -> Result<(), Error> {
     let mut item = &mut doc.root;
     let mut already_inline = false;
     let mut query = &query.0[..];
-    use QueryComponent::{Name, Num};
+    use TpathComponent::{Name, Num};
     while let Some(qc) = query.first() {
         query = &query[1..]; // TODO simplify to `for`, unless end up needing a tail
         match qc {
@@ -137,9 +139,10 @@ fn set(path: PathBuf, query: &str, value_str: &str) -> Result<(), Error> {
     Ok(())
 }
 
-struct Query<'a>(Vec<QueryComponent<'a>>);
+/// Query language is simple: a query is a "TOML path", or tpath.
+struct Query<'a>(Vec<TpathComponent<'a>>);
 
-enum QueryComponent<'a> {
+enum TpathComponent<'a> {
     Name(&'a str),
     Num(usize),
 }
@@ -155,14 +158,14 @@ fn parse_query(mut query: &str) -> Result<Query, CliError> {
     let re_bynum = Regex::new(r"\A\[(\d+)\]").unwrap();
     loop {
         if let Some(cap) = re_byname.captures(&query) {
-            r.0.push(QueryComponent::Name(cap.get(1).unwrap().as_str()));
+            r.0.push(TpathComponent::Name(cap.get(1).unwrap().as_str()));
             query = &query[cap.get(0).unwrap().end()..];
         } else if let Some(cap) = re_bynum.captures(&query) {
             let n = match cap.get(1).unwrap().as_str().parse::<usize>() {
                 Err(_) => Err(CliError::BadQuery())?, // TODO: specific message
                 Ok(n) => n,
             };
-            r.0.push(QueryComponent::Num(n));
+            r.0.push(TpathComponent::Num(n));
             query = &query[cap.get(0).unwrap().end()..];
         } else if query == "" {
             break;
@@ -174,12 +177,12 @@ fn parse_query(mut query: &str) -> Result<Query, CliError> {
     Ok(r)
 }
 
-fn walk_query<'a>(mut item: &'a toml_edit::Item, query: &Query)
+fn walk_tpath<'a>(mut item: &'a toml_edit::Item, tpath: &[TpathComponent])
               -> &'a toml_edit::Item {
-    for qc in &query.0 {
+    for qc in tpath {
         match qc {
-            QueryComponent::Name(n) => item = &item[n],
-            QueryComponent::Num(n) => item = &item[n],
+            TpathComponent::Name(n) => item = &item[n],
+            TpathComponent::Num(n) => item = &item[n],
         }
     }
 
