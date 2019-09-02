@@ -2,8 +2,9 @@
 name = "toml-cli"
 version = "0.1.0"
 description = "A simple CLI for editing and querying TOML files."
-repository = "https://github.com/gnprice/toml-cli"
 authors = ["Greg Price <gnprice@gmail.com>"]
+repository = "https://github.com/gnprice/toml-cli"
+readme = "README.md"
 license = "MIT"
 
 edition = "2018"
