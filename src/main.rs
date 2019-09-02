@@ -21,7 +21,7 @@ enum Args {
         #[structopt(flatten)]
         opts: GetOpts,
     },
-    /// Edit the file to set some data
+    /// Edit the file to set some data (currently, just print modified version)
     Set {
         /// Path to the TOML file to read
         #[structopt(parse(from_os_str))]
