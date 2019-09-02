@@ -59,13 +59,13 @@ fn read_parse(path: PathBuf) -> Result<Document, Error> {
 }
 
 fn get(path: PathBuf, query: &str, opts: GetOpts) -> Result<(), Error> {
-    let query = parse_query(query)?;
+    let tpath = parse_query(query)?.0;
     let doc = read_parse(path)?;
 
     if opts.output_toml {
-        print_toml_fragment(&doc, &query.0);
+        print_toml_fragment(&doc, &tpath);
     } else {
-        let item = walk_tpath(&doc.root, &query.0);
+        let item = walk_tpath(&doc.root, &tpath);
         // TODO: support shell-friendly output like `jq -r`
         println!("{}", serde_json::to_string(&JsonItem(item))?);
     }
@@ -95,15 +95,15 @@ fn print_toml_fragment(doc: &Document, tpath: &[TpathComponent]) -> () {
 }
 
 fn set(path: PathBuf, query: &str, value_str: &str) -> Result<(), Error> {
-    let query = parse_query(query)?;
+    let tpath = parse_query(query)?.0;
     let mut doc = read_parse(path)?;
 
     let mut item = &mut doc.root;
     let mut already_inline = false;
-    let mut query = &query.0[..];
+    let mut tpath = &tpath[..];
     use TpathComponent::{Name, Num};
-    while let Some(qc) = query.first() {
-        query = &query[1..]; // TODO simplify to `for`, unless end up needing a tail
+    while let Some(qc) = tpath.first() {
+        tpath = &tpath[1..]; // TODO simplify to `for`, unless end up needing a tail
         match qc {
             Num(n) => {
                 let len = match &item {
