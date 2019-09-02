@@ -171,6 +171,8 @@ enum TpathSegment<'a> {
 }
 
 fn parse_query(mut query: &str) -> Result<Query, CliError> {
+    use TpathSegment::{Name, Num};
+
     let mut r = Query(vec![]);
 
     if query == "." {
@@ -181,14 +183,14 @@ fn parse_query(mut query: &str) -> Result<Query, CliError> {
     let re_bynum = Regex::new(r"\A\[(\d+)\]").unwrap();
     loop {
         if let Some(cap) = re_byname.captures(&query) {
-            r.0.push(TpathSegment::Name(cap.get(1).unwrap().as_str()));
+            r.0.push(Name(cap.get(1).unwrap().as_str()));
             query = &query[cap.get(0).unwrap().end()..];
         } else if let Some(cap) = re_bynum.captures(&query) {
             let n = match cap.get(1).unwrap().as_str().parse::<usize>() {
                 Err(_) => Err(CliError::BadQuery())?, // TODO: specific message
                 Ok(n) => n,
             };
-            r.0.push(TpathSegment::Num(n));
+            r.0.push(Num(n));
             query = &query[cap.get(0).unwrap().end()..];
         } else if query == "" {
             break;
@@ -202,13 +204,13 @@ fn parse_query(mut query: &str) -> Result<Query, CliError> {
 
 fn walk_tpath<'a>(mut item: &'a toml_edit::Item, tpath: &[TpathSegment])
               -> &'a toml_edit::Item {
+    use TpathSegment::{Name, Num};
     for seg in tpath {
         match seg {
-            TpathSegment::Name(n) => item = &item[n],
-            TpathSegment::Num(n) => item = &item[n],
+            Name(n) => item = &item[n],
+            Num(n) => item = &item[n],
         }
     }
-
     item
 }
 
