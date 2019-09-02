@@ -73,24 +73,47 @@ fn get(path: PathBuf, query: &str, opts: GetOpts) -> Result<(), Error> {
 }
 
 fn print_toml_fragment(doc: &Document, tpath: &[TpathSegment]) -> () {
-    let item = walk_tpath(&doc.root, tpath);
+    use TpathSegment::{Name, Num};
 
-    // TODO really need to use tpath -- makes no sense to print without that
-    let mut doc = Document::new();
-    match item {
-        Item::Table(_) => doc.root = item.clone(),
-        Item::ArrayOfTables(_) => {
-            let mut t = Table::new();
-            t[""] = item.clone();
-            doc.root = Item::Table(t);
+    let mut item = &doc.root;
+    let mut breadcrumbs = vec![];
+    for seg in tpath {
+        breadcrumbs.push((item, seg));
+        match seg {
+            Name(n) => item = &item[n],
+            Num(n) => item = &item[n],
         }
-        Item::Value(_) => {
-            let mut t = Table::new();
-            t[""] = item.clone();
-            doc.root = Item::Table(t);
-        }
-        Item::None => (),
     }
+
+    let mut item = item.clone();
+    while let Some((parent, seg)) = breadcrumbs.pop() {
+        match (seg, parent) {
+            (Name(n), Item::Table(t)) => {
+                // TODO clean up all this copying; may need more from toml_edit API
+                let mut next = t.clone();
+                while !next.is_empty() {
+                    let (k, _) = next.iter().next().unwrap();
+                    let k = String::from(k);
+                    next.remove(&k);
+                }
+                next[n] = item;
+                item = Item::Table(next);
+            }
+            (Num(_), Item::ArrayOfTables(a)) => {
+                // TODO clean up this copying too
+                let mut next = a.clone();
+                next.clear();
+                match item {
+                    Item::Table(t) => { next.append(t); },
+                    _ => panic!("malformed TOML parse-tree"),
+                }
+                item = Item::ArrayOfTables(next);
+            }
+            _ => panic!("UNIMPLEMENTED: --output-toml inside inline data"), // TODO
+        }
+    }
+    let mut doc = Document::new();
+    doc.root = item;
     println!("{}", doc.to_string());
 }
 
