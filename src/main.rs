@@ -8,6 +8,7 @@ use serde::ser::{Serialize, SerializeMap, Serializer, SerializeSeq};
 use structopt::StructOpt;
 use toml_edit::{Document, Item, Table, Value, value};
 
+// TODO: Get more of the description in the README into the CLI help.
 #[derive(StructOpt)]
 #[structopt(about)]
 enum Args {
