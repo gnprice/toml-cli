@@ -6,7 +6,7 @@ use failure::{Error, Fail};
 use regex::Regex;
 use serde::ser::{Serialize, SerializeMap, Serializer, SerializeSeq};
 use structopt::StructOpt;
-use toml_edit::{Document, Item, Value, value};
+use toml_edit::{Document, Item, Table, Value, value};
 
 #[derive(StructOpt)]
 enum Args {
@@ -66,6 +66,7 @@ fn set(path: PathBuf, query: &str, value_str: &str) -> Result<(), Error> {
     let mut doc = read_parse(path)?;
 
     let mut item = &mut doc.root;
+    let mut already_inline = false;
     let mut query = &query.0[..];
     use QueryComponent::{Name, Num};
     while let Some(qc) = query.first() {
@@ -80,13 +81,19 @@ fn set(path: PathBuf, query: &str, value_str: &str) -> Result<(), Error> {
                 if n >= &len {
                     Err(CliError::ArrayIndexOob())?;
                 }
+                match &item { Item::Value(_) => already_inline = true, _ => () };
                 item = &mut item[n];
             }
             Name(n) => {
                 match &item {
-                    Item::Table(_) | Item::Value(Value::InlineTable(_)) => (),
+                    Item::Table(_) => (),
+                    Item::Value(Value::InlineTable(_)) => already_inline = true,
                     // TODO make this more directly construct the new, inner part?
-                    _ => *item = Item::None,
+                    _ => *item = if already_inline {
+                        Item::Value(Value::InlineTable(Default::default()))
+                    } else {
+                        Item::Table(Table::new())
+                    },
                 };
                 item = &mut item[n];
             }
