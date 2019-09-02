@@ -72,7 +72,7 @@ fn get(path: PathBuf, query: &str, opts: GetOpts) -> Result<(), Error> {
     Ok(())
 }
 
-fn print_toml_fragment(doc: &Document, tpath: &[TpathComponent]) -> () {
+fn print_toml_fragment(doc: &Document, tpath: &[TpathSegment]) -> () {
     let item = walk_tpath(&doc.root, tpath);
 
     // TODO really need to use tpath -- makes no sense to print without that
@@ -101,10 +101,10 @@ fn set(path: PathBuf, query: &str, value_str: &str) -> Result<(), Error> {
     let mut item = &mut doc.root;
     let mut already_inline = false;
     let mut tpath = &tpath[..];
-    use TpathComponent::{Name, Num};
-    while let Some(qc) = tpath.first() {
+    use TpathSegment::{Name, Num};
+    while let Some(seg) = tpath.first() {
         tpath = &tpath[1..]; // TODO simplify to `for`, unless end up needing a tail
-        match qc {
+        match seg {
             Num(n) => {
                 let len = match &item {
                     Item::ArrayOfTables(a) => a.len(),
@@ -140,9 +140,9 @@ fn set(path: PathBuf, query: &str, value_str: &str) -> Result<(), Error> {
 }
 
 /// Query language is simple: a query is a "TOML path", or tpath.
-struct Query<'a>(Vec<TpathComponent<'a>>);
+struct Query<'a>(Vec<TpathSegment<'a>>);
 
-enum TpathComponent<'a> {
+enum TpathSegment<'a> {
     Name(&'a str),
     Num(usize),
 }
@@ -158,14 +158,14 @@ fn parse_query(mut query: &str) -> Result<Query, CliError> {
     let re_bynum = Regex::new(r"\A\[(\d+)\]").unwrap();
     loop {
         if let Some(cap) = re_byname.captures(&query) {
-            r.0.push(TpathComponent::Name(cap.get(1).unwrap().as_str()));
+            r.0.push(TpathSegment::Name(cap.get(1).unwrap().as_str()));
             query = &query[cap.get(0).unwrap().end()..];
         } else if let Some(cap) = re_bynum.captures(&query) {
             let n = match cap.get(1).unwrap().as_str().parse::<usize>() {
                 Err(_) => Err(CliError::BadQuery())?, // TODO: specific message
                 Ok(n) => n,
             };
-            r.0.push(TpathComponent::Num(n));
+            r.0.push(TpathSegment::Num(n));
             query = &query[cap.get(0).unwrap().end()..];
         } else if query == "" {
             break;
@@ -177,12 +177,12 @@ fn parse_query(mut query: &str) -> Result<Query, CliError> {
     Ok(r)
 }
 
-fn walk_tpath<'a>(mut item: &'a toml_edit::Item, tpath: &[TpathComponent])
+fn walk_tpath<'a>(mut item: &'a toml_edit::Item, tpath: &[TpathSegment])
               -> &'a toml_edit::Item {
-    for qc in tpath {
-        match qc {
-            TpathComponent::Name(n) => item = &item[n],
-            TpathComponent::Num(n) => item = &item[n],
+    for seg in tpath {
+        match seg {
+            TpathSegment::Name(n) => item = &item[n],
+            TpathSegment::Num(n) => item = &item[n],
         }
     }
 
