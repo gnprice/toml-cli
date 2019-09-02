@@ -14,6 +14,8 @@ enum Args {
         #[structopt(parse(from_os_str))]
         path: PathBuf,
         query: String,
+        #[structopt(flatten)]
+        opts: GetOpts,
     },
     Set {
         #[structopt(parse(from_os_str))]
@@ -22,6 +24,12 @@ enum Args {
         value_str: String, // TODO more forms
     },
     // TODO: append/add (name TBD)
+}
+
+#[derive(StructOpt)]
+struct GetOpts {
+    #[structopt(long)]
+    output_toml: bool,
 }
 
 #[derive(Debug, Fail)]
@@ -37,7 +45,7 @@ enum CliError {
 fn main() -> Result<(), Error> {
     let args = Args::from_args();
     match args {
-        Args::Get { path, query } => get(path, &query)?,
+        Args::Get { path, query, opts } => get(path, &query, opts)?,
         Args::Set { path, query, value_str } => set(path, &query, &value_str)?,
     }
     Ok(())
@@ -50,15 +58,38 @@ fn read_parse(path: PathBuf) -> Result<Document, Error> {
     Ok(data.parse::<Document>()?)
 }
 
-fn get(path: PathBuf, query: &str) -> Result<(), Error> {
+fn get(path: PathBuf, query: &str, opts: GetOpts) -> Result<(), Error> {
     let query = parse_query(query)?;
     let doc = read_parse(path)?;
     let item = walk_query(&doc.root, &query);
 
-    // TODO: support shell-friendly output like `jq -r`
-    println!("{}", serde_json::to_string(&JsonItem(item))?);
-
+    if opts.output_toml {
+        print_as_toml(&item);
+    } else {
+        // TODO: support shell-friendly output like `jq -r`
+        println!("{}", serde_json::to_string(&JsonItem(item))?);
+    }
     Ok(())
+}
+
+fn print_as_toml(item: &Item) -> () {
+    // TODO really need to use query -- makes no sense to print without that
+    let mut doc = Document::new();
+    match item {
+        Item::Table(_) => doc.root = item.clone(),
+        Item::ArrayOfTables(_) => {
+            let mut t = Table::new();
+            t[""] = item.clone();
+            doc.root = Item::Table(t);
+        }
+        Item::Value(_) => {
+            let mut t = Table::new();
+            t[""] = item.clone();
+            doc.root = Item::Table(t);
+        }
+        Item::None => (),
+    }
+    println!("{}", doc.to_string());
 }
 
 fn set(path: PathBuf, query: &str, value_str: &str) -> Result<(), Error> {
