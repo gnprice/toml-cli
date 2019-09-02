@@ -9,18 +9,26 @@ use structopt::StructOpt;
 use toml_edit::{Document, Item, Table, Value, value};
 
 #[derive(StructOpt)]
+#[structopt(about)]
 enum Args {
+    /// Print some data from the file
     Get {
+        /// Path to the TOML file to read
         #[structopt(parse(from_os_str))]
         path: PathBuf,
+        /// Query within the TOML data (e.g. `.dependencies.serde`, `.foo[0].bar`)
         query: String,
         #[structopt(flatten)]
         opts: GetOpts,
     },
+    /// Edit the file to set some data
     Set {
+        /// Path to the TOML file to read
         #[structopt(parse(from_os_str))]
         path: PathBuf,
+        /// Query within the TOML data (e.g. `.dependencies.serde`, `.foo[0].bar`)
         query: String,
+        /// String value to place at the given spot (bool, array, etc. are TODO)
         value_str: String, // TODO more forms
     },
     // TODO: append/add (name TBD)
@@ -28,6 +36,7 @@ enum Args {
 
 #[derive(StructOpt)]
 struct GetOpts {
+    /// Print as a TOML fragment (default: print as JSON)
     #[structopt(long)]
     output_toml: bool,
 }
