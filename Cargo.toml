@@ -13,6 +13,10 @@ edition = "2018"
 name = "toml"
 path = "src/main.rs"
 
+[[test]]
+name = "test"
+path = "test/test.rs"
+
 [dependencies]
 failure = "0.1"
 regex = "1"
