@@ -1,12 +1,15 @@
+mod query_parser;
+
 use std::fs;
 use std::path::PathBuf;
 use std::str;
 
 use failure::{Error, Fail};
-use regex::Regex;
 use serde::ser::{Serialize, SerializeMap, Serializer, SerializeSeq};
 use structopt::StructOpt;
 use toml_edit::{Document, Item, Table, Value, value};
+
+use query_parser::{Query, TpathSegment, parse_query};
 
 // TODO: Get more of the description in the README into the CLI help.
 #[derive(StructOpt)]
@@ -69,7 +72,7 @@ fn read_parse(path: PathBuf) -> Result<Document, Error> {
 }
 
 fn get(path: PathBuf, query: &str, opts: GetOpts) -> Result<(), Error> {
-    let tpath = parse_query(query)?.0;
+    let tpath = parse_query_cli(query)?.0;
     let doc = read_parse(path)?;
 
     if opts.output_toml {
@@ -128,7 +131,7 @@ fn print_toml_fragment(doc: &Document, tpath: &[TpathSegment]) -> () {
 }
 
 fn set(path: PathBuf, query: &str, value_str: &str) -> Result<(), Error> {
-    let tpath = parse_query(query)?.0;
+    let tpath = parse_query_cli(query)?.0;
     let mut doc = read_parse(path)?;
 
     let mut item = &mut doc.root;
@@ -172,44 +175,10 @@ fn set(path: PathBuf, query: &str, value_str: &str) -> Result<(), Error> {
     Ok(())
 }
 
-/// Query language is simple: a query is a "TOML path", or tpath.
-struct Query<'a>(Vec<TpathSegment<'a>>);
-
-enum TpathSegment<'a> {
-    Name(&'a str),
-    Num(usize),
-}
-
-fn parse_query(mut query: &str) -> Result<Query, CliError> {
-    use TpathSegment::{Name, Num};
-
-    let mut r = Query(vec![]);
-
-    if query == "." {
-        return Ok(r);
-    }
-
-    let re_byname = Regex::new(r"\A\.(\w+)").unwrap();
-    let re_bynum = Regex::new(r"\A\[(\d+)\]").unwrap();
-    loop {
-        if let Some(cap) = re_byname.captures(&query) {
-            r.0.push(Name(cap.get(1).unwrap().as_str()));
-            query = &query[cap.get(0).unwrap().end()..];
-        } else if let Some(cap) = re_bynum.captures(&query) {
-            let n = match cap.get(1).unwrap().as_str().parse::<usize>() {
-                Err(_) => Err(CliError::BadQuery())?, // TODO: specific message
-                Ok(n) => n,
-            };
-            r.0.push(Num(n));
-            query = &query[cap.get(0).unwrap().end()..];
-        } else if query == "" {
-            break;
-        } else {
-            Err(CliError::BadQuery())?; // TODO: better message
-        }
-    }
-
-    Ok(r)
+fn parse_query_cli(query: &str) -> Result<Query, CliError> {
+    parse_query(query).map_err(|_err| {
+        CliError::BadQuery() // TODO: specific message
+    })
 }
 
 fn walk_tpath<'a>(mut item: &'a toml_edit::Item, tpath: &[TpathSegment])

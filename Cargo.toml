@@ -19,7 +19,7 @@ path = "test/test.rs"
 
 [dependencies]
 failure = "0.1"
-regex = "1"
+nom = "5"
 serde = "1.0"
 serde_json = "1.0"
 structopt = "0.3"
