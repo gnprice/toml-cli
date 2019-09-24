@@ -35,14 +35,14 @@ segments*, each of which is either:
  * `[INDEX]`, to index into an array-of-tables or array.
 
 ```
-$ toml get Cargo.toml .dependencies.serde
+$ toml get Cargo.toml dependencies.serde
 "1.0"
 ```
 
 Data is emitted by default as JSON:
 
 ```
-$ toml get Cargo.toml .bin[0]
+$ toml get Cargo.toml bin[0]
 {"name":"toml","path":"src/main.rs"}
 ```
 
@@ -70,7 +70,7 @@ $ cat >foo.toml <<EOF
 b = "c"
 EOF
 
-$ toml set foo.toml .x.y z
+$ toml set foo.toml x.y z
 [a]
 b = "c"
 
@@ -122,7 +122,7 @@ FLAGS:
 
 ARGS:
     <path>     Path to the TOML file to read
-    <query>    Query within the TOML data (e.g. `.dependencies.serde`, `.foo[0].bar`)
+    <query>    Query within the TOML data (e.g. `dependencies.serde`, `foo[0].bar`)
 ```
 
 ### `toml set`
@@ -141,6 +141,6 @@ FLAGS:
 
 ARGS:
     <path>         Path to the TOML file to read
-    <query>        Query within the TOML data (e.g. `.dependencies.serde`, `.foo[0].bar`)
+    <query>        Query within the TOML data (e.g. `dependencies.serde`, `foo[0].bar`)
     <value-str>    String value to place at the given spot (bool, array, etc. are TODO)
 ```

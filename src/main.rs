@@ -20,7 +20,7 @@ enum Args {
         /// Path to the TOML file to read
         #[structopt(parse(from_os_str))]
         path: PathBuf,
-        /// Query within the TOML data (e.g. `.dependencies.serde`, `.foo[0].bar`)
+        /// Query within the TOML data (e.g. `dependencies.serde`, `foo[0].bar`)
         query: String,
         #[structopt(flatten)]
         opts: GetOpts,
@@ -30,7 +30,7 @@ enum Args {
         /// Path to the TOML file to read
         #[structopt(parse(from_os_str))]
         path: PathBuf,
-        /// Query within the TOML data (e.g. `.dependencies.serde`, `.foo[0].bar`)
+        /// Query within the TOML data (e.g. `dependencies.serde`, `foo[0].bar`)
         query: String,
         /// String value to place at the given spot (bool, array, etc. are TODO)
         value_str: String, // TODO more forms

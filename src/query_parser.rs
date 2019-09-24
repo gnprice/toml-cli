@@ -15,8 +15,8 @@ use nom::{
     character::complete::{char, digit1, none_of, one_of},
     combinator::{all_consuming, map, map_res},
     error::ErrorKind,
-    multi::many1,
-    sequence::{delimited, preceded},
+    multi::many0,
+    sequence::{delimited, preceded, tuple},
     Err, IResult,
 };
 
@@ -49,15 +49,16 @@ fn bare_string(s: &str) -> IResult<&str, &str> {
     take_while1(|c: char| c.is_ascii_alphanumeric() || c == '-' || c == '_')(s)
 }
 
+fn key_string(s: &str) -> IResult<&str, String> {
+    alt((basic_string, map(bare_string, String::from)))(s)
+}
+
 fn array_index(s: &str) -> IResult<&str, usize> {
     map_res(digit1, |i: &str| usize::from_str_radix(i, 10))(s)
 }
 
 fn tpath_segment_name(s: &str) -> IResult<&str, String> {
-    preceded(
-        char('.'),
-        alt((basic_string, map(bare_string, String::from))),
-    )(s)
+    preceded(char('.'), key_string)(s)
 }
 
 fn tpath_segment_num(s: &str) -> IResult<&str, usize> {
@@ -74,7 +75,10 @@ fn tpath_segment(s: &str) -> IResult<&str, TpathSegment> {
 fn tpath(s: &str) -> IResult<&str, Vec<TpathSegment>> {
     alt((
         map(all_consuming(char('.')), |_| vec![]),
-        many1(tpath_segment),
+        // Must start with a name, because TOML root is always a table.
+        map(tuple((map(key_string, TpathSegment::Name),
+                   many0(tpath_segment))),
+            |(hd, mut tl)| { tl.insert(0, hd); tl })
     ))(s)
 }
 
@@ -91,11 +95,14 @@ fn test_parse_query() {
     let name = |n: &str| Name(n.to_string());
     for (s, expected) in vec![
         (".", Ok(vec![])),
-        (".a", Ok(vec![name("a")])),
-        (".\"a.b\"", Ok(vec![name("a.b")])),
+        ("a", Ok(vec![name("a")])),
+        ("a.b", Ok(vec![name("a"), name("b")])),
+        ("\"a.b\"", Ok(vec![name("a.b")])),
         ("..", Err(())),
-        (".a[1]", Ok(vec![name("a"), Num(1)])),
-        (".a[b]", Err(())),
+        ("a[1]", Ok(vec![name("a"), Num(1)])),
+        ("a[b]", Err(())),
+        ("a[1].b", Ok(vec![name("a"), Num(1), name("b")])),
+        ("a.b[1]", Ok(vec![name("a"), name("b"), Num(1)])),
     ] {
         let actual = parse_query(s);
         // This could use some slicker check that prints the actual on failure.
