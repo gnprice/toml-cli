@@ -57,18 +57,18 @@ fn array_index(s: &str) -> IResult<&str, usize> {
     map_res(digit1, |i: &str| usize::from_str_radix(i, 10))(s)
 }
 
-fn tpath_segment_name(s: &str) -> IResult<&str, String> {
-    preceded(char('.'), key_string)(s)
+fn tpath_segment_name(s: &str) -> IResult<&str, TpathSegment> {
+    map(key_string, TpathSegment::Name)(s)
 }
 
-fn tpath_segment_num(s: &str) -> IResult<&str, usize> {
-    delimited(char('['), array_index, char(']'))(s)
+fn tpath_segment_num(s: &str) -> IResult<&str, TpathSegment> {
+    map(delimited(char('['), array_index, char(']')), TpathSegment::Num)(s)
 }
 
-fn tpath_segment(s: &str) -> IResult<&str, TpathSegment> {
+fn tpath_segment_rest(s: &str) -> IResult<&str, TpathSegment> {
     alt((
-        map(tpath_segment_name, TpathSegment::Name),
-        map(tpath_segment_num, TpathSegment::Num),
+        preceded(char('.'), tpath_segment_name),
+        tpath_segment_num,
     ))(s)
 }
 
@@ -76,8 +76,7 @@ fn tpath(s: &str) -> IResult<&str, Vec<TpathSegment>> {
     alt((
         map(all_consuming(char('.')), |_| vec![]),
         // Must start with a name, because TOML root is always a table.
-        map(tuple((map(key_string, TpathSegment::Name),
-                   many0(tpath_segment))),
+        map(tuple((tpath_segment_name, many0(tpath_segment_rest))),
             |(hd, mut tl)| { tl.insert(0, hd); tl })
     ))(s)
 }
