@@ -3,7 +3,7 @@ use std::convert::TryFrom;
 /// Query language is simple: a query is a "TOML path", or tpath.
 pub struct Query(pub Vec<TpathSegment>);
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum TpathSegment {
     Name(String),
     Num(usize),
@@ -83,4 +83,26 @@ pub fn parse_query(s: &str) -> Result<Query, Err<(&str, ErrorKind)>> {
         assert!(trailing.is_empty());
         Query(res)
     })
+}
+
+#[test]
+fn test_parse_query() {
+    use TpathSegment::{Name, Num};
+    let name = |n: &str| Name(n.to_string());
+    for (s, expected) in vec![
+        (".", Ok(vec![])),
+        (".a", Ok(vec![name("a")])),
+        (".\"a.b\"", Ok(vec![name("a.b")])),
+        ("..", Err(())),
+        (".a[1]", Ok(vec![name("a"), Num(1)])),
+        (".a[b]", Err(())),
+    ] {
+        let actual = parse_query(s);
+        // This could use some slicker check that prints the actual on failure.
+        // Also nice would be to proceed to try the other test cases.
+        match expected {
+            Ok(q) => assert!(q == actual.unwrap().0),
+            Err(_) => assert!(actual.is_err())
+        }
+    }
 }
