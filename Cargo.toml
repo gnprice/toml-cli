@@ -19,8 +19,8 @@ path = "test/test.rs"
 
 [dependencies]
 failure = "0.1"
-nom = "5"
+nom = "5.1.2"
 serde = "1.0"
 serde_json = "1.0"
 structopt = "0.3"
-toml_edit = "0.1"
+toml_edit = "0.2.1"
