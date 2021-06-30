@@ -5,8 +5,8 @@ pub struct Query(pub Vec<TpathSegment>);
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum TpathSegment {
-    Name(String),
-    Num(usize),
+	Name(String),
+	Num(usize),
 }
 
 use nom::{
@@ -21,23 +21,22 @@ use nom::{
 };
 
 fn hex_unicode_scalar(len: usize, s: &str) -> IResult<&str, char> {
-    map_res(
-        take_while_m_n(len, len, |c: char| c.is_ascii_hexdigit()),
-        |s: &str| char::try_from(u32::from_str_radix(s, 16).unwrap()),
-    )(s)
+	map_res(take_while_m_n(len, len, |c: char| c.is_ascii_hexdigit()), |s: &str| {
+		char::try_from(u32::from_str_radix(s, 16).unwrap())
+	})(s)
 }
 
 fn basic_string_escape(s: &str) -> IResult<&str, char> {
-    alt((
-        one_of("\\\""),
-        map(char('b'), |_| '\x08'),
-        map(char('t'), |_| '\t'),
-        map(char('n'), |_| '\n'),
-        map(char('f'), |_| '\x0c'),
-        map(char('r'), |_| '\r'),
-        preceded(char('u'), |s| hex_unicode_scalar(4, s)),
-        preceded(char('U'), |s| hex_unicode_scalar(8, s)),
-    ))(s)
+	alt((
+		one_of("\\\""),
+		map(char('b'), |_| '\x08'),
+		map(char('t'), |_| '\t'),
+		map(char('n'), |_| '\n'),
+		map(char('f'), |_| '\x0c'),
+		map(char('r'), |_| '\r'),
+		preceded(char('u'), |s| hex_unicode_scalar(4, s)),
+		preceded(char('U'), |s| hex_unicode_scalar(8, s)),
+	))(s)
 }
 
 fn basic_string(s: &str) -> IResult<&str, String> {
@@ -52,11 +51,11 @@ fn basic_string(s: &str) -> IResult<&str, String> {
 }
 
 fn bare_string(s: &str) -> IResult<&str, &str> {
-    take_while1(|c: char| c.is_ascii_alphanumeric() || c == '-' || c == '_')(s)
+	take_while1(|c: char| c.is_ascii_alphanumeric() || c == '-' || c == '_')(s)
 }
 
 fn key_string(s: &str) -> IResult<&str, String> {
-    alt((basic_string, map(bare_string, String::from)))(s)
+	alt((basic_string, map(bare_string, String::from)))(s)
 }
 
 fn array_index(s: &str) -> IResult<&str, usize> {
@@ -64,20 +63,17 @@ fn array_index(s: &str) -> IResult<&str, usize> {
 }
 
 fn tpath_segment_name(s: &str) -> IResult<&str, TpathSegment> {
-    map(key_string, TpathSegment::Name)(s)
+	map(key_string, TpathSegment::Name)(s)
 }
 
 #[rustfmt::skip]
 fn tpath_segment_num(s: &str) -> IResult<&str, TpathSegment> {
-    map(delimited(char('['), array_index, char(']')), TpathSegment::Num)(s)
+	map(delimited(char('['), array_index, char(']')), TpathSegment::Num)(s)
 }
 
 #[rustfmt::skip]
 fn tpath_segment_rest(s: &str) -> IResult<&str, TpathSegment> {
-    alt((
-        preceded(char('.'), tpath_segment_name),
-        tpath_segment_num,
-    ))(s)
+	alt((preceded(char('.'), tpath_segment_name), tpath_segment_num))(s)
 }
 
 #[rustfmt::skip]
