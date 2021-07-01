@@ -1,0 +1,209 @@
+name: Build Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  linux:
+    env:
+      TARGET_DIR: target/release
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.inputs.ref }}
+
+      - name: Install latest stable
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Install cargo deb
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: cargo-deb
+
+      - name: Build debian package
+        shell: bash
+        run: |
+          cargo deb -p toml-cli -o "toml_linux_amd64.deb" -- --locked
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: linux
+          path: |
+            toml_linux_amd64.deb
+
+  macos:
+    env:
+      TARGET_DIR: target/release
+
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Get Release Version
+        run: |
+          echo GITHUB_REF=$GITHUB_REF
+          RELEASE_VERSION=${GITHUB_REF#refs/*/}
+          RAW_VERSION=${RELEASE_VERSION:1}
+          echo "RELEASE_VERSION=$RELEASE_VERSION" >> $GITHUB_ENV
+          echo "RAW_VERSION=$RAW_VERSION" >> $GITHUB_ENV
+          echo "SHORT_SHA=${GITHUB_SHA::8}" >> $GITHUB_ENV
+
+      - name: Install latest stable
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Check tooling
+        shell: bash
+        run: |
+          tar --version
+          shasum --version
+
+      - name: Build MacOS binary
+        shell: bash
+        run: |
+          cargo build --locked --release
+          ls -al "${{ env.TARGET_DIR }}/toml"
+
+      - name: Compress & sha256
+        run: |
+          tar -czf ${{ env.TARGET_DIR }}/toml_macos.tar.gz -C ${{ env.TARGET_DIR }} toml
+          SHA256=$(shasum -a 256 ${{ env.TARGET_DIR }}/toml_macos.tar.gz | awk '{ print $1}' | tee ${{ env.TARGET_DIR }}/toml_macos.tar.gz.sha256)
+          echo SHA256: $SHA256
+          echo "SHA256=$SHA256" >> $GITHUB_ENV
+
+      - name: Upload MacOS artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: macos
+          path: |
+            ${{ env.TARGET_DIR }}/toml
+            ${{ env.TARGET_DIR }}/toml_macos.tar.gz
+            ${{ env.TARGET_DIR }}/toml_macos.tar.gz.sha256
+
+      - name: Install tera MacOS binary v0.1.3
+        run: |
+          URL=https://github.com/chevdor/tera-cli/releases/download/v0.1.3/tera-macos-v0.1.3.tar.gz
+          wget $URL
+          tar xvf tera-macos-v0.1.3.tar.gz -C /usr/local/bin
+          tera --version
+
+      # We do that before checking out master (in case we were not in master already)
+      - name: Prepare new Formula
+        env:
+          NAME: Toml
+          DESCRIPTION: "A command line utility written in Rust download, inspect and compare Substrate based chains WASM Runtimes"
+          SITE: https://github.com
+          REPO: chevdor/toml-cli
+          SHA256: ${{env.SHA256}}
+          VERSION: ${{env.RAW_VERSION}}
+        run: |
+          tera --version
+          tera --template templates/formula.rb --env-only > $HOME/toml.rb
+          cat $HOME/toml.rb
+
+      - name: Update Homebrew Formula
+        run: |
+          cp -f $HOME/toml.rb Formula/toml.rb
+          git config --global user.name 'TeraBot'
+          git config --global user.email 'chevdor@users.noreply.github.com'
+          git add Formula/toml.rb
+          git commit Formula/toml.rb -m "build: new homebrew formula for ${{ env.RELEASE_VERSION }}"
+          git push origin HEAD:master
+
+  create_draft:
+    needs: ["linux", "macos"]
+    name: Create Draft
+    runs-on: ubuntu-latest
+    outputs:
+      release_url: ${{ steps.create-release.outputs.html_url }}
+      asset_upload_url: ${{ steps.create-release.outputs.upload_url }}
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Get Release Version
+        run: |
+          echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+          echo "SHORT_SHA=${GITHUB_SHA::8}" >> $GITHUB_ENV
+      - uses: actions/download-artifact@v2
+
+      - name: Install tera v0.1.3
+        run: |
+          URL=https://github.com/chevdor/tera-cli/releases/download/v0.1.3/tera-cli_linux_amd64.deb
+          wget $URL
+          sudo dpkg -i tera-cli_linux_amd64.deb
+          tera --version
+
+      - name: Generate changelog
+        id: change_log
+        run: |
+          LAST_TAG=$(git describe --tags --abbrev=0 ${{ env.RELEASE_VERSION }}^ )
+          JSON=$(git log $LAST_TAG..HEAD \
+            --pretty=format:'{ "commit": "%H", "short_sha": "%h", "author": "%an", "date": "%ad", "message": "%s"},' \
+            $@ | \
+            perl -pe 'BEGIN{print "{ \"since\": \"'${LAST_TAG}'\",  \"commits\": ["}; END{print "]}"}' | \
+            perl -pe 's/},]/}]/')
+          echo $JSON | tera --template templates/changelog.md --stdin > changelog.md
+
+      - name: Render release notes
+        run: |
+          export DEBIAN_URL="https://github.com/chevdor/toml-cli/releases/download/${{ env.RELEASE_VERSION }}/toml_linux_amd64_${{ env.RELEASE_VERSION }}.deb"
+          export MACOS_TGZ_URL="https://github.com/chevdor/toml-cli/releases/download/${{ env.RELEASE_VERSION }}/toml_macos_${{ env.RELEASE_VERSION }}.tar.gz"
+          export CHANGELOG=$(cat changelog.md)
+          tera --env --env-only --template templates/release.md > RELEASE_NOTES.md
+
+      - name: Create Release
+        id: create-release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.RELEASE_VERSION }}
+          release_name: toml ${{ env.RELEASE_VERSION }} (${{ env.SHORT_SHA }})
+          body_path: ./RELEASE_NOTES.md
+          draft: true
+
+  publish-binaries:
+    runs-on: ubuntu-latest
+    needs: ["create_draft"]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Get Release Version
+        run: |
+          echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+          echo "SHORT_SHA=${GITHUB_SHA::8}" >> $GITHUB_ENV
+
+      - uses: actions/download-artifact@v2
+
+      - name: Upload Debian package
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create_draft.outputs.asset_upload_url }}
+          asset_path: "linux/toml_linux_amd64.deb"
+          asset_name: "toml_linux_amd64_${{ env.RELEASE_VERSION }}.deb"
+          asset_content_type: application/vnd.debian.binary-package
+
+      - name: Upload MacOS archive
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create_draft.outputs.asset_upload_url }}
+          asset_path: "macos/toml_macos.tar.gz"
+          asset_name: "toml_macos_${{ env.RELEASE_VERSION }}.tar.gz"
+          asset_content_type: application/gzip
