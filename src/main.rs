@@ -34,8 +34,17 @@ enum Args {
         query: String,
         /// String value to place at the given spot (bool, array, etc. are TODO)
         value_str: String, // TODO more forms
+        #[structopt(flatten)]
+        opts: SetOpts,
     },
     // TODO: append/add (name TBD)
+}
+
+#[derive(StructOpt)]
+struct SetOpts {
+    /// Edit the file in place
+    #[structopt(long, short)]
+    in_place: bool,
 }
 
 #[derive(StructOpt)]
@@ -61,12 +70,12 @@ fn main() -> Result<(), Error> {
     let args = Args::from_args();
     match args {
         Args::Get { path, query, opts } => get(path, &query, opts)?,
-        Args::Set { path, query, value_str } => set(path, &query, &value_str)?,
+        Args::Set { path, query, value_str, opts } => set(path, &query, &value_str, opts)?,
     }
     Ok(())
 }
 
-fn read_parse(path: PathBuf) -> Result<Document, Error> {
+fn read_parse(path: &PathBuf) -> Result<Document, Error> {
     // TODO: better report errors like ENOENT
     let data = fs::read(path)?;
     let data = str::from_utf8(&data)?;
@@ -75,7 +84,7 @@ fn read_parse(path: PathBuf) -> Result<Document, Error> {
 
 fn get(path: PathBuf, query: &str, opts: GetOpts) -> Result<(), Error> {
     let tpath = parse_query_cli(query)?.0;
-    let doc = read_parse(path)?;
+    let doc = read_parse(&path)?;
 
     if opts.output_toml {
         print_toml_fragment(&doc, &tpath);
@@ -140,9 +149,9 @@ fn print_toml_fragment(doc: &Document, tpath: &[TpathSegment]) -> () {
     print!("{}", doc.to_string());
 }
 
-fn set(path: PathBuf, query: &str, value_str: &str) -> Result<(), Error> {
+fn set(path: PathBuf, query: &str, value_str: &str, opts: SetOpts) -> Result<(), Error> {
     let tpath = parse_query_cli(query)?.0;
-    let mut doc = read_parse(path)?;
+    let mut doc = read_parse(&path)?;
 
     let mut item = &mut doc.root;
     let mut already_inline = false;
@@ -180,8 +189,11 @@ fn set(path: PathBuf, query: &str, value_str: &str) -> Result<(), Error> {
     }
     *item = value(value_str);
 
-    // TODO actually write back
-    print!("{}", doc.to_string());
+    if opts.in_place {
+        fs::write(&path, doc.to_string())?;
+    } else {
+        print!("{}", doc.to_string());
+    }
     Ok(())
 }
 
