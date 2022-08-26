@@ -43,6 +43,8 @@ struct GetOpts {
     /// Print as a TOML fragment (default: print as JSON)
     #[structopt(long)]
     output_toml: bool,
+    #[structopt(long, short)]
+    raw: bool,
 }
 
 #[derive(Debug, Fail)]
@@ -77,9 +79,17 @@ fn get(path: PathBuf, query: &str, opts: GetOpts) -> Result<(), Error> {
 
     if opts.output_toml {
         print_toml_fragment(&doc, &tpath);
+    } else if opts.raw {
+        let item = walk_tpath(&doc.root, &tpath);
+        let item = serde_json::to_value(&JsonItem(item))?;
+        match item {
+            serde_json::Value::String(s) => println!("{}", s),
+            _ => {
+                println!("{}", serde_json::to_string(&item)?);
+            }
+        }
     } else {
         let item = walk_tpath(&doc.root, &tpath);
-        // TODO: support shell-friendly output like `jq -r`
         println!("{}", serde_json::to_string(&JsonItem(item))?);
     }
     Ok(())
