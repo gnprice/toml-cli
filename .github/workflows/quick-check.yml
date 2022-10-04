@@ -1,0 +1,55 @@
+# This workflow runs on every push and checks whether everything looks good
+
+name: Quick check
+
+on: push
+
+jobs:
+  quick_check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Rust stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - name: Install Rust nightly toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          components: clippy, rustfmt
+
+      - name: Install Rust tooling
+        uses: taiki-e/install-action@v1
+        with:
+          tool: nextest
+
+      - uses: actions/checkout@v2
+
+      - name: Cargo fmt
+        uses: actions-rs/cargo@v1
+        with:
+          toolchain: nightly
+          command: fmt
+          args: --all -- --check
+
+      - name: Cargo clippy
+        uses: actions-rs/cargo@v1
+        with:
+          toolchain: nightly
+          command: clippy
+          args: -- -D warnings
+
+      - name: Cargo nextest
+        uses: actions-rs/cargo@v1
+        with:
+          command: nextest
+          args: run
+
+      - name: Cargo check
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
