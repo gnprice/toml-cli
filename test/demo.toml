@@ -1,0 +1,30 @@
+[package]
+authors = ["Greg Price <gnprice@gmail.com>"]
+description = "A simple CLI for editing and querying TOML files."
+license = "MIT"
+name = "toml-cli"
+readme = "README.md"
+repository = "https://github.com/gnprice/toml-cli"
+version = "0.2.1"
+foo.bar = "foobar"
+
+edition = "2018"
+
+[[bin]]
+name = "toml"
+path = "src/main.rs"
+
+[[test]]
+name = "test"
+path = "test/test.rs"
+
+[dependencies]
+failure = "0.1"
+nom = "5.1"
+serde = "1.0"
+serde_json = "1.0"
+structopt = "0.3"
+toml_edit = "0.2"
+
+[dev-dependencies]
+assert_cmd = "2.0"
