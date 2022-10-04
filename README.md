@@ -1,5 +1,11 @@
 # toml-cli
 
+## This is a fork
+This is a fork of https://github.com/gnprice/toml-cli which appears to have gone un-maintained for 3+ years.
+This fork provides more up to date deps as well as binaries for each release.
+
+## Intro
+
 This is the home of the `toml` command, a simple CLI for editing
 and querying TOML files.
 
