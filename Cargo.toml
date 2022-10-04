@@ -6,7 +6,6 @@ authors = ["Greg Price <gnprice@gmail.com>"]
 license = "MIT"
 readme = "README.md"
 repository = "https://github.com/gnprice/toml-cli"
-
 edition = "2021"
 
 [[bin]]
