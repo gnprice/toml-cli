@@ -13,11 +13,20 @@ use structopt::StructOpt;
 use toml_edit::{value, Document, Item, Table, Value};
 
 use query_parser::{parse_query, Query, TpathSegment};
+use TpathSegment::{Name, Num};
 
 // TODO: Get more of the description in the README into the CLI help.
 #[derive(StructOpt)]
 #[structopt(about)]
 enum Args {
+    /// Check if a key exists
+    Check {
+        /// Path to the TOML file to read
+        #[structopt(parse(from_os_str))]
+        path: PathBuf,
+        /// Query within the TOML data (e.g. `dependencies.serde`, `foo[0].bar`)
+        query: String,
+    },
     /// Print some data from the file
     Get {
         /// Path to the TOML file to read
@@ -73,6 +82,7 @@ enum CliError {
 fn main() -> Result<(), Error> {
     let args = Args::from_args();
     match args {
+        Args::Check { path, query } => check(path, &query),
         Args::Get { path, query, opts } => get(path, &query, opts)?,
         Args::Set {
             path,
@@ -91,6 +101,41 @@ fn read_parse(path: PathBuf) -> Result<Document, Error> {
     Ok(data.parse::<Document>()?)
 }
 
+fn check_exists(path: PathBuf, query: &str) -> Result<bool, Error> {
+    let tpath = parse_query_cli(query)?.0;
+    let doc = read_parse(path)?;
+    let mut item = doc.as_item();
+
+    for seg in tpath {
+        match seg {
+            Name(n) => {
+                let i = item.get(n);
+                if i.is_none() {
+                    return Ok(false);
+                }
+                item = i.unwrap();
+            }
+            Num(n) => item = &item[n],
+        }
+    }
+
+    Ok(true)
+}
+
+/// Check whether a key exists.
+/// It will print 'true' to stdout in case exists, and set exit code to '0'
+/// otherwise it will print 'false' to stderr and set exit code to '1'
+fn check(path: PathBuf, query: &str) {
+    if let Ok(r) = check_exists(path, query) {
+        if r {
+            println!("true");
+            std::process::exit(0);
+        }
+    }
+    eprintln!("false");
+    std::process::exit(1);
+}
+
 fn get(path: PathBuf, query: &str, opts: GetOpts) -> Result<(), Error> {
     let tpath = parse_query_cli(query)?.0;
     let doc = read_parse(path)?;
@@ -106,8 +151,6 @@ fn get(path: PathBuf, query: &str, opts: GetOpts) -> Result<(), Error> {
 }
 
 fn print_toml_fragment(doc: &Document, tpath: &[TpathSegment]) {
-    use TpathSegment::{Name, Num};
-
     let mut item = doc.as_item();
     let mut breadcrumbs = vec![];
     for seg in tpath {
@@ -158,7 +201,6 @@ fn set(path: PathBuf, query: &str, value_str: &str, opts: SetOpts) -> Result<(),
     let mut item = doc.as_item_mut();
     let mut already_inline = false;
     let mut tpath = &tpath[..];
-    use TpathSegment::{Name, Num};
     while let Some(seg) = tpath.first() {
         tpath = &tpath[1..]; // TODO simplify to `for`, unless end up needing a tail
         match seg {
@@ -219,7 +261,6 @@ fn parse_query_cli(query: &str) -> Result<Query, CliError> {
 }
 
 fn walk_tpath<'a>(mut item: &'a toml_edit::Item, tpath: &[TpathSegment]) -> &'a toml_edit::Item {
-    use TpathSegment::{Name, Num};
     for seg in tpath {
         match seg {
             Name(n) => item = &item[n],
