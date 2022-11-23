@@ -100,9 +100,43 @@ FLAGS:
     -V, --version    Prints version information
 
 SUBCOMMANDS:
-    get     Print some data from the file
-    help    Prints this message or the help of the given subcommand(s)
-    set     Edit the file to set some data (currently, just print modified version)
+    check    Check if a key exists
+    get      Print some data from the file
+    help     Prints this message or the help of the given subcommand(s)
+    set      Edit the file to set some data (currently, just print modified version)
+```
+
+### `toml check`
+
+```
+$ toml check --help
+toml-check 0.2.0
+Check if a key exists
+
+USAGE:
+    toml check <path> <query>
+
+FLAGS:
+    -h, --help       Prints help information
+    -V, --version    Prints version information
+
+ARGS:
+    <path>     Path to the TOML file to read
+    <query>    Query within the TOML data (e.g. `dependencies.serde`, `foo[0].bar`)
+```
+
+Check whether a key exists. It will print `true` to stdout in case exists, and set exit code to `0`,
+otherwise it will print `false` to stderr and set exit code to `1`.
+
+```sh
+$ toml check test.toml plugins.name2
+flase
+$ echo $?
+1
+$ toml check test.toml plugins.name
+true
+$ echo $?
+0
 ```
 
 ### `toml get`
