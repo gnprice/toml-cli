@@ -130,7 +130,7 @@ otherwise it will print `false` to stderr and set exit code to `1`.
 
 ```sh
 $ toml check test.toml plugins.name2
-flase
+false
 $ echo $?
 1
 $ toml check test.toml plugins.name

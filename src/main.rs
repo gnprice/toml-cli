@@ -116,7 +116,7 @@ fn check(path: PathBuf, query: &str) {
             std::process::exit(0);
         }
     }
-    eprintln!("flase");
+    eprintln!("false");
     std::process::exit(1);
 }
 
