@@ -9,6 +9,8 @@ on:
 env:
   CARGO_TERM_COLOR: always
   RUST_TARGET: x86_64-unknown-linux-musl
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   build-linux:
@@ -83,3 +85,34 @@ jobs:
         generate_release_notes: true
         files: |
           ${{ env.tarballs }}
+
+  publish-image:
+    runs-on: ubuntu-latest
+    needs: [build-linux]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Log in to the container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: download artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: toml-artifacts-linux
+          path: misc
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+      - name: build and push toml cli image
+        uses: docker/build-push-action@v3
+        with:
+          context: misc
+          file: misc/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
