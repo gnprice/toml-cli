@@ -1,6 +1,9 @@
 mod query_parser;
 
+use chrono::{DateTime, Utc};
 use std::fs;
+use std::fs::OpenOptions;
+use std::io::Write;
 use std::path::PathBuf;
 use std::str;
 
@@ -25,7 +28,7 @@ enum Args {
         #[structopt(flatten)]
         opts: GetOpts,
     },
-    /// Edit the file to set some data (currently, just print modified version)
+    /// Edit the file to set some data
     Set {
         /// Path to the TOML file to read
         #[structopt(parse(from_os_str))]
@@ -34,6 +37,8 @@ enum Args {
         query: String,
         /// String value to place at the given spot (bool, array, etc. are TODO)
         value_str: String, // TODO more forms
+        #[structopt(flatten)]
+        opts: SetOpts,
     },
     // TODO: append/add (name TBD)
 }
@@ -43,6 +48,16 @@ struct GetOpts {
     /// Print as a TOML fragment (default: print as JSON)
     #[structopt(long)]
     output_toml: bool,
+}
+
+#[derive(StructOpt)]
+struct SetOpts {
+    /// Overwrite the TOML file (default: print to stdout)
+    #[structopt(long)]
+    overwrite: bool,
+    /// Create a backup file when `overwrite` is set(default: doesn't create a backup file)
+    #[structopt(long)]
+    backup: bool,
 }
 
 #[derive(Debug, Fail)]
@@ -63,7 +78,8 @@ fn main() -> Result<(), Error> {
             path,
             query,
             value_str,
-        } => set(path, &query, &value_str)?,
+            opts,
+        } => set(path, &query, &value_str, opts)?,
     }
     Ok(())
 }
@@ -135,9 +151,9 @@ fn print_toml_fragment(doc: &Document, tpath: &[TpathSegment]) {
     print!("{}", doc);
 }
 
-fn set(path: PathBuf, query: &str, value_str: &str) -> Result<(), Error> {
+fn set(path: PathBuf, query: &str, value_str: &str, opts: SetOpts) -> Result<(), Error> {
     let tpath = parse_query_cli(query)?.0;
-    let mut doc = read_parse(path)?;
+    let mut doc = read_parse(path.clone())?;
 
     let mut item = doc.as_item_mut();
     let mut already_inline = false;
@@ -181,8 +197,19 @@ fn set(path: PathBuf, query: &str, value_str: &str) -> Result<(), Error> {
     }
     *item = value(value_str);
 
-    // TODO actually write back
-    print!("{}", doc);
+    if opts.overwrite {
+        // write content to path
+        if opts.backup {
+            let now: DateTime<Utc> = Utc::now();
+            let ext = now.format("%Y%m%d-%H%M%S-%f");
+            let backup_file = format!("{}.{}", path.display(), ext);
+            fs::copy(path.clone(), backup_file)?;
+        }
+        let mut output = OpenOptions::new().write(true).truncate(true).open(path)?;
+        write!(output, "{}", doc)?;
+    } else {
+        print!("{}", doc);
+    }
     Ok(())
 }
 

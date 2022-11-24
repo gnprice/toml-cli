@@ -102,7 +102,7 @@ FLAGS:
 SUBCOMMANDS:
     get     Print some data from the file
     help    Prints this message or the help of the given subcommand(s)
-    set     Edit the file to set some data (currently, just print modified version)
+    set     Edit the file to set some data
 ```
 
 ### `toml get`
@@ -130,14 +130,16 @@ ARGS:
 ```
 $ toml set --help
 toml-set 0.2.0
-Edit the file to set some data (currently, just print modified version)
+Edit the file to set some data
 
 USAGE:
     toml set <path> <query> <value-str>
 
 FLAGS:
-    -h, --help       Prints help information
-    -V, --version    Prints version information
+        --backup       Create a backup file when `overwrite` is set(default: doesn't create a backup file)
+    -h, --help         Prints help information
+        --overwrite    Overwrite the TOML file (default: print to stdout)
+    -V, --version      Prints version information
 
 ARGS:
     <path>         Path to the TOML file to read
