@@ -237,7 +237,7 @@ fn set(path: PathBuf, query: &str, value_str: &str, opts: SetOpts) -> Result<(),
             }
         }
     }
-    *item = value(value_str);
+    *item = detect_value(value_str);
 
     if opts.write {
         if opts.backup {
@@ -252,6 +252,16 @@ fn set(path: PathBuf, query: &str, value_str: &str, opts: SetOpts) -> Result<(),
         print!("{}", doc);
     }
     Ok(())
+}
+
+fn detect_value(value_str: &str) -> Item {
+    if let Ok(i) = value_str.parse::<i64>() {
+        value(i)
+    } else if let Ok(b) = value_str.parse::<bool>() {
+        value(b)
+    } else {
+        value(value_str)
+    }
 }
 
 fn parse_query_cli(query: &str) -> Result<Query, CliError> {
