@@ -85,7 +85,7 @@ fn get(path: PathBuf, query: &str, opts: GetOpts) -> Result<(), Error> {
     Ok(())
 }
 
-fn print_toml_fragment(doc: &Document, tpath: &[TpathSegment]) -> () {
+fn print_toml_fragment(doc: &Document, tpath: &[TpathSegment]) {
     use TpathSegment::{Name, Num};
 
     let mut item = doc.as_item();
@@ -126,7 +126,7 @@ fn print_toml_fragment(doc: &Document, tpath: &[TpathSegment]) -> () {
         }
     }
     let doc = Document::from(item.into_table().unwrap());
-    print!("{}", doc.to_string());
+    print!("{}", doc);
 }
 
 fn set(path: PathBuf, query: &str, value_str: &str) -> Result<(), Error> {
@@ -171,7 +171,7 @@ fn set(path: PathBuf, query: &str, value_str: &str) -> Result<(), Error> {
     *item = value(value_str);
 
     // TODO actually write back
-    print!("{}", doc.to_string());
+    print!("{}", doc);
     Ok(())
 }
 

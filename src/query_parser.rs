@@ -54,7 +54,7 @@ fn key_string(s: &str) -> IResult<&str, String> {
 }
 
 fn array_index(s: &str) -> IResult<&str, usize> {
-    map_res(digit1, |i: &str| usize::from_str_radix(i, 10))(s)
+    map_res(digit1, |i: &str| i.parse())(s)
 }
 
 fn tpath_segment_name(s: &str) -> IResult<&str, TpathSegment> {
