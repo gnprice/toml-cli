@@ -78,7 +78,7 @@ fn get(path: PathBuf, query: &str, opts: GetOpts) -> Result<(), Error> {
     if opts.output_toml {
         print_toml_fragment(&doc, &tpath);
     } else {
-        let item = walk_tpath(&doc.root, &tpath);
+        let item = walk_tpath(doc.as_item(), &tpath);
         // TODO: support shell-friendly output like `jq -r`
         println!("{}", serde_json::to_string(&JsonItem(item))?);
     }
@@ -88,7 +88,7 @@ fn get(path: PathBuf, query: &str, opts: GetOpts) -> Result<(), Error> {
 fn print_toml_fragment(doc: &Document, tpath: &[TpathSegment]) -> () {
     use TpathSegment::{Name, Num};
 
-    let mut item = &doc.root;
+    let mut item = doc.as_item();
     let mut breadcrumbs = vec![];
     for seg in tpath {
         breadcrumbs.push((item, seg));
@@ -125,8 +125,7 @@ fn print_toml_fragment(doc: &Document, tpath: &[TpathSegment]) -> () {
             _ => panic!("UNIMPLEMENTED: --output-toml inside inline data"), // TODO
         }
     }
-    let mut doc = Document::new();
-    doc.root = item;
+    let doc = Document::from(item.into_table().unwrap());
     print!("{}", doc.to_string());
 }
 
@@ -134,7 +133,7 @@ fn set(path: PathBuf, query: &str, value_str: &str) -> Result<(), Error> {
     let tpath = parse_query_cli(query)?.0;
     let mut doc = read_parse(path)?;
 
-    let mut item = &mut doc.root;
+    let mut item = doc.as_item_mut();
     let mut already_inline = false;
     let mut tpath = &tpath[..];
     use TpathSegment::{Name, Num};
