@@ -62,22 +62,27 @@ fn tpath_segment_name(s: &str) -> IResult<&str, TpathSegment> {
 }
 
 fn tpath_segment_num(s: &str) -> IResult<&str, TpathSegment> {
-    map(delimited(char('['), array_index, char(']')), TpathSegment::Num)(s)
+    map(
+        delimited(char('['), array_index, char(']')),
+        TpathSegment::Num,
+    )(s)
 }
 
 fn tpath_segment_rest(s: &str) -> IResult<&str, TpathSegment> {
-    alt((
-        preceded(char('.'), tpath_segment_name),
-        tpath_segment_num,
-    ))(s)
+    alt((preceded(char('.'), tpath_segment_name), tpath_segment_num))(s)
 }
 
 fn tpath(s: &str) -> IResult<&str, Vec<TpathSegment>> {
     alt((
         map(all_consuming(char('.')), |_| vec![]),
         // Must start with a name, because TOML root is always a table.
-        map(tuple((tpath_segment_name, many0(tpath_segment_rest))),
-            |(hd, mut tl)| { tl.insert(0, hd); tl })
+        map(
+            tuple((tpath_segment_name, many0(tpath_segment_rest))),
+            |(hd, mut tl)| {
+                tl.insert(0, hd);
+                tl
+            },
+        ),
     ))(s)
 }
 
@@ -108,7 +113,7 @@ fn test_parse_query() {
         // Also nice would be to proceed to try the other test cases.
         match expected {
             Ok(q) => assert!(q == actual.unwrap().0),
-            Err(_) => assert!(actual.is_err())
+            Err(_) => assert!(actual.is_err()),
         }
     }
 }
