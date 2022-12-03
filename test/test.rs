@@ -5,7 +5,7 @@ use std::process;
 use std::str;
 
 #[test]
-fn help_if_no_args() {
+fn integration_test_help_if_no_args() {
     // Probably want to factor out much of this when adding more tests.
     let proc = process::Command::new(get_exec_path()).output().unwrap();
     assert!(!proc.status.success());
