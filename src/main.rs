@@ -235,6 +235,7 @@ impl Serialize for JsonValue<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where S: Serializer,
     {
+        #[allow(clippy::redundant_pattern_matching)]
         if let Some(v) = self.0.as_integer() {
             v.serialize(serializer)
         } else if let Some(v) = self.0.as_float() {
