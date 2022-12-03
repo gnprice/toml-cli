@@ -6,6 +6,8 @@ use std::process;
 use std::process::Output;
 use std::str;
 
+use tempfile::TempDir;
+
 #[test]
 fn integration_test_help_if_no_args() {
     let err = toml_error([] as [&str; 0]);
@@ -14,35 +16,29 @@ fn integration_test_help_if_no_args() {
 
 #[test]
 fn integration_test_cmd_get() {
-    let body = r#"[a]
+    let contents = r#"[a]
 b = "c"
 [x]
 y = "z""#;
-    let toml_dir = tempfile::tempdir().expect("failed to create tempdir");
-    let toml_file = toml_dir.path().join("test.toml");
-    fs::write(&toml_file, body).expect("failed to write tempfile");
-    let toml_file = toml_file.as_os_str().to_str().unwrap();
+    let (toml_file, _tempdir) = prep_file(contents);
 
-    let actual = toml_success(["get", toml_file, "x.y"]);
+    let actual = toml_success(["get", &toml_file, "x.y"]);
     assert_eq!("\"z\"\n", actual);
 
     // x.z does not exist
-    toml_error(["get", toml_file, "x.z"]);
+    toml_error(["get", &toml_file, "x.z"]);
 }
 
 #[test]
 fn integration_test_cmd_set() {
-    let body = r#"[a]
+    let contents = r#"[a]
 b = "c"
 [x]
 y = "z""#;
-    let toml_dir = tempfile::tempdir().expect("failed to create tempdir");
-    let toml_file = toml_dir.path().join("test.toml");
-    fs::write(&toml_file, body).expect("failed to write tempfile");
-    let toml_file = toml_file.as_os_str().to_str().unwrap();
+    let (toml_file, _tempdir) = prep_file(contents);
 
     // x.y exists
-    let actual = toml_success(["set", toml_file, "x.y", "new"]);
+    let actual = toml_success(["set", &toml_file, "x.y", "new"]);
     let expected = r#"[a]
 b = "c"
 [x]
@@ -50,7 +46,7 @@ y = "new"
 "#;
     assert_eq!(expected, actual);
 
-    let actual = toml_success(["set", toml_file, "x.z", "123"]);
+    let actual = toml_success(["set", &toml_file, "x.z", "123"]);
     let expected = r#"[a]
 b = "c"
 [x]
@@ -98,4 +94,14 @@ fn get_exec_path() -> PathBuf {
         .unwrap_or_else(|| OsString::from("target"))
         .into();
     target_dir.join("debug").join("toml")
+}
+
+fn prep_file(contents: &str) -> (String, TempDir) {
+    let toml_dir = tempfile::tempdir().expect("failed to create tempdir");
+    let toml_file = toml_dir.path().join("test.toml");
+    fs::write(&toml_file, contents).expect("failed to write tempfile");
+    (
+        String::from(toml_file.as_os_str().to_str().unwrap()),
+        toml_dir,
+    )
 }
