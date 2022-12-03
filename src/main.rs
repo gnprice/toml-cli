@@ -52,10 +52,10 @@ struct GetOpts {
 
 #[derive(StructOpt)]
 struct SetOpts {
-    /// Overwrite the TOML file (default: print to stdout)
+    /// Overwrite the TOML file instead of printing to stdout
     #[structopt(long)]
-    overwrite: bool,
-    /// Create a backup file when `overwrite` is set(default: doesn't create a backup file)
+    write: bool,
+    /// Create a backup file when using `--write` (default: false)
     #[structopt(long)]
     backup: bool,
 }
@@ -197,7 +197,7 @@ fn set(path: PathBuf, query: &str, value_str: &str, opts: SetOpts) -> Result<(),
     }
     *item = value(value_str);
 
-    if opts.overwrite {
+    if opts.write {
         // write content to path
         if opts.backup {
             let now: DateTime<Utc> = Utc::now();

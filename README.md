@@ -133,13 +133,13 @@ toml-set 0.2.0
 Edit the file to set some data
 
 USAGE:
-    toml set <path> <query> <value-str>
+    toml set [FLAGS] <path> <query> <value-str>
 
 FLAGS:
-        --backup       Create a backup file when `overwrite` is set(default: doesn't create a backup file)
-    -h, --help         Prints help information
-        --overwrite    Overwrite the TOML file (default: print to stdout)
-    -V, --version      Prints version information
+        --backup     Create a backup file when using `--write` (default: false)
+    -h, --help       Prints help information
+    -V, --version    Prints version information
+        --write      Overwrite the TOML file instead of printing to stdout
 
 ARGS:
     <path>         Path to the TOML file to read
