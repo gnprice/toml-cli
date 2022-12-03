@@ -9,9 +9,9 @@ use std::str;
 #[test]
 fn integration_test_help_if_no_args() {
     // Probably want to factor out much of this when adding more tests.
-    let proc = run_toml([] as [&str; 0]);
-    assert!(!proc.status.success());
-    let stderr = str::from_utf8(proc.stderr.as_slice()).unwrap();
+    let out = run_toml([] as [&str; 0]);
+    assert!(!out.status.success());
+    let stderr = str::from_utf8(out.stderr.as_slice()).unwrap();
     assert!(stderr.contains("-h, --help"));
 }
 
@@ -26,14 +26,14 @@ y = "z""#;
     fs::write(&toml_file, body).expect("failed to write tempfile");
     let toml_file = toml_file.as_os_str().to_str().unwrap();
 
-    let cmd = run_toml(["get", toml_file, "x.y"]);
-    assert!(cmd.status.success());
-    let stdout = str::from_utf8(cmd.stdout.as_slice()).unwrap();
+    let out = run_toml(["get", toml_file, "x.y"]);
+    assert!(out.status.success());
+    let stdout = str::from_utf8(out.stdout.as_slice()).unwrap();
     assert_eq!("\"z\"\n", stdout);
 
     // x.z does not exist
-    let cmd = run_toml(["get", toml_file, "x.z"]);
-    assert!(!cmd.status.success());
+    let out = run_toml(["get", toml_file, "x.z"]);
+    assert!(!out.status.success());
 }
 
 #[test]
@@ -48,9 +48,9 @@ y = "z""#;
     let toml_file = toml_file.as_os_str().to_str().unwrap();
 
     // x.y exists
-    let cmd = run_toml(["set", toml_file, "x.y", "new"]);
-    assert!(cmd.status.success());
-    let stdout = str::from_utf8(cmd.stdout.as_slice()).unwrap();
+    let out = run_toml(["set", toml_file, "x.y", "new"]);
+    assert!(out.status.success());
+    let stdout = str::from_utf8(out.stdout.as_slice()).unwrap();
     let expected = r#"[a]
 b = "c"
 [x]
@@ -58,9 +58,9 @@ y = "new"
 "#;
     assert_eq!(expected, stdout);
 
-    let cmd = run_toml(["set", toml_file, "x.z", "123"]);
-    assert!(cmd.status.success());
-    let stdout = str::from_utf8(cmd.stdout.as_slice()).unwrap();
+    let out = run_toml(["set", toml_file, "x.z", "123"]);
+    assert!(out.status.success());
+    let stdout = str::from_utf8(out.stdout.as_slice()).unwrap();
     let expected = r#"[a]
 b = "c"
 [x]
