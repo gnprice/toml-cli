@@ -33,7 +33,7 @@ y = "z""#;
     let stdout = str::from_utf8(cmd.stdout.as_slice()).unwrap();
     assert_eq!("\"z\"\n", stdout);
 
-    // x.z does not exists
+    // x.z does not exist
     let cmd = process::Command::new(get_exec_path())
         .args(["get", toml_file, "x.z"])
         .output()
@@ -43,7 +43,6 @@ y = "z""#;
 
 #[test]
 fn integration_test_cmd_set() {
-    // fn set(path: PathBuf, query: &str, value_str: &str, opts: SetOpts) -> Result<(), Error> {
     let body = r#"[a]
 b = "c"
 [x]
@@ -60,12 +59,12 @@ y = "z""#;
         .unwrap();
     assert!(cmd.status.success());
     let stdout = str::from_utf8(cmd.stdout.as_slice()).unwrap();
-    let excepted = r#"[a]
+    let expected = r#"[a]
 b = "c"
 [x]
 y = "new"
 "#;
-    assert_eq!(excepted, stdout);
+    assert_eq!(expected, stdout);
 
     let cmd = process::Command::new(get_exec_path())
         .args(["set", toml_file, "x.z", "123"])
@@ -73,13 +72,13 @@ y = "new"
         .unwrap();
     assert!(cmd.status.success());
     let stdout = str::from_utf8(cmd.stdout.as_slice()).unwrap();
-    let excepted = r#"[a]
+    let expected = r#"[a]
 b = "c"
 [x]
 y = "z"
 z = "123"
 "#;
-    assert_eq!(excepted, stdout);
+    assert_eq!(expected, stdout);
 }
 
 fn get_exec_path() -> PathBuf {
