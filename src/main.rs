@@ -1,6 +1,7 @@
 mod query_parser;
 
 use std::fs;
+use std::io::{self, Read};
 use std::path::PathBuf;
 use std::str;
 
@@ -17,11 +18,11 @@ use query_parser::{parse_query, Query, TpathSegment};
 enum Args {
     /// Print some data from the file
     Get {
-        /// Path to the TOML file to read
-        #[structopt(parse(from_os_str))]
-        path: PathBuf,
         /// Query within the TOML data (e.g. `dependencies.serde`, `foo[0].bar`)
         query: String,
+        /// Path to the TOML file to read
+        #[structopt(parse(from_os_str))]
+        path: Option<PathBuf>,
         #[structopt(flatten)]
         opts: GetOpts,
     },
@@ -75,9 +76,17 @@ fn read_parse(path: PathBuf) -> Result<Document, Error> {
     Ok(data.parse::<Document>()?)
 }
 
-fn get(path: PathBuf, query: &str, opts: GetOpts) -> Result<(), Error> {
+fn get(path: Option<PathBuf>, query: &str, opts: GetOpts) -> Result<(), Error> {
     let tpath = parse_query_cli(query)?.0;
-    let doc = read_parse(path)?;
+    let doc: Document = match path {
+        Some(path) => read_parse(path)?,
+        None => {
+            let mut buf: Vec<u8> = vec![];
+            io::stdin().read_to_end(&mut buf)?;
+            let data = str::from_utf8(&buf)?;
+            data.parse::<Document>()?
+        }
+    };
 
     if opts.output_toml {
         print_toml_fragment(&doc, &tpath);
