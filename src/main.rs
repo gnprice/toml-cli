@@ -198,7 +198,6 @@ fn set(path: PathBuf, query: &str, value_str: &str, opts: SetOpts) -> Result<(),
     *item = value(value_str);
 
     if opts.write {
-        // write content to path
         if opts.backup {
             let now: DateTime<Utc> = Utc::now();
             let ext = now.format("%Y%m%d-%H%M%S-%f");
