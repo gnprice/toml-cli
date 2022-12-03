@@ -149,6 +149,7 @@ fn set(path: PathBuf, query: &str, value_str: &str) -> Result<(), Error> {
                 if n >= &len {
                     Err(CliError::ArrayIndexOob())?;
                 }
+                #[allow(clippy::single_match)]
                 match &item { Item::Value(_) => already_inline = true, _ => () };
                 item = &mut item[n];
             }
