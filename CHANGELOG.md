@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+
+## 0.2.1
+
 * Update dependencies, fixing build on recent Rust toolchains (#12).
 * Adjust so `cargo fmt` and `cargo clippy` are clean.
 
