@@ -8,11 +8,8 @@ use std::str;
 
 #[test]
 fn integration_test_help_if_no_args() {
-    // Probably want to factor out much of this when adding more tests.
-    let out = run_toml([] as [&str; 0]);
-    assert!(!out.status.success());
-    let stderr = str::from_utf8(out.stderr.as_slice()).unwrap();
-    assert!(stderr.contains("-h, --help"));
+    let err = toml_error([] as [&str; 0]);
+    assert!(err.contains("-h, --help"));
 }
 
 #[test]
@@ -26,14 +23,11 @@ y = "z""#;
     fs::write(&toml_file, body).expect("failed to write tempfile");
     let toml_file = toml_file.as_os_str().to_str().unwrap();
 
-    let out = run_toml(["get", toml_file, "x.y"]);
-    assert!(out.status.success());
-    let stdout = str::from_utf8(out.stdout.as_slice()).unwrap();
-    assert_eq!("\"z\"\n", stdout);
+    let actual = toml_success(["get", toml_file, "x.y"]);
+    assert_eq!("\"z\"\n", actual);
 
     // x.z does not exist
-    let out = run_toml(["get", toml_file, "x.z"]);
-    assert!(!out.status.success());
+    toml_error(["get", toml_file, "x.z"]);
 }
 
 #[test]
@@ -48,26 +42,44 @@ y = "z""#;
     let toml_file = toml_file.as_os_str().to_str().unwrap();
 
     // x.y exists
-    let out = run_toml(["set", toml_file, "x.y", "new"]);
-    assert!(out.status.success());
-    let stdout = str::from_utf8(out.stdout.as_slice()).unwrap();
+    let actual = toml_success(["set", toml_file, "x.y", "new"]);
     let expected = r#"[a]
 b = "c"
 [x]
 y = "new"
 "#;
-    assert_eq!(expected, stdout);
+    assert_eq!(expected, actual);
 
-    let out = run_toml(["set", toml_file, "x.z", "123"]);
-    assert!(out.status.success());
-    let stdout = str::from_utf8(out.stdout.as_slice()).unwrap();
+    let actual = toml_success(["set", toml_file, "x.z", "123"]);
     let expected = r#"[a]
 b = "c"
 [x]
 y = "z"
 z = "123"
 "#;
-    assert_eq!(expected, stdout);
+    assert_eq!(expected, actual);
+}
+
+fn toml_success<I, S>(args: I) -> String
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<OsStr>,
+{
+    let out = run_toml(args);
+    assert!(out.status.success());
+    assert!(out.stderr.is_empty());
+    String::from_utf8(out.stdout).unwrap()
+}
+
+fn toml_error<I, S>(args: I) -> String
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<OsStr>,
+{
+    let out = run_toml(args);
+    assert!(!out.status.success());
+    assert!(out.stdout.is_empty());
+    String::from_utf8(out.stderr).unwrap()
 }
 
 fn run_toml<I, S>(args: I) -> Output
