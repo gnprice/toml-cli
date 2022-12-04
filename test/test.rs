@@ -92,36 +92,48 @@ tomltest_get!(get_string_raw, ["--raw", "key"], "value\n");
 
 tomltest_get_err!(get_missing, ["nosuchkey"], "panicked"); // TODO should make error better
 
-tomltest!(set_string_existing, |mut t: TestCaseState| {
-    let contents = r#"[a]
-b = "c"
+macro_rules! tomltest_set {
+    ($name:ident, $args:expr, $expected:expr) => {
+        tomltest!($name, |mut t: TestCaseState| {
+            t.write_file(INITIAL);
+            t.cmd.args(["set", &t.filename()]).args($args);
+            check_eq(&$expected, &t.expect_success());
+        });
+    };
+}
+
+const INITIAL: &str = r#"
 [x]
-y = "z""#;
-    t.write_file(contents);
-    t.cmd.args(["set", &t.filename(), "x.y", "new"]);
-    let expected = r#"[a]
-b = "c"
+y = 1
+"#;
+
+#[rustfmt::skip]
+tomltest_set!(set_string_existing, ["x.y", "new"], r#"
 [x]
 y = "new"
-"#;
-    check_eq(expected, &t.expect_success());
-});
+"#);
 
-tomltest!(set_string, |mut t: TestCaseState| {
-    let contents = r#"[a]
-b = "c"
-[x]
-y = "z""#;
-    t.write_file(contents);
-    t.cmd.args(["set", &t.filename(), "x.z", "123"]);
-    let expected = r#"[a]
-b = "c"
-[x]
-y = "z"
-z = "123"
-"#;
-    check_eq(expected, &t.expect_success());
-});
+#[rustfmt::skip]
+tomltest_set!(set_string_existing_table, ["x.z", "123"], format!(
+r#"{INITIAL}z = "123"
+"#));
+
+#[rustfmt::skip]
+tomltest_set!(set_string_new_table, ["foo.bar", "baz"], format!(
+r#"{INITIAL}
+[foo]
+bar = "baz"
+"#));
+
+#[rustfmt::skip]
+tomltest_set!(set_string_toplevel, ["foo", "bar"], format!(
+r#"foo = "bar"
+{INITIAL}"#));
+
+// TODO test `set` on string with newlines and other fun characters
+// TODO test `set` when existing value is an array, table, or array of tables
+// TODO test `set` inside existing array or inline table
+// TODO test `set` inside existing array of tables
 
 struct TestCaseState {
     cmd: process::Command,
