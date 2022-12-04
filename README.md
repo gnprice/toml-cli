@@ -92,7 +92,7 @@ This subcommand is quite raw in two respects:
 
 ```
 $ toml --help
-toml-cli 0.2.1
+toml-cli 0.2.2
 A simple CLI for editing and querying TOML files.
 
 USAGE:
@@ -112,7 +112,7 @@ SUBCOMMANDS:
 
 ```
 $ toml get --help
-toml-get 0.2.1
+toml-get 0.2.2
 Print some data from the file
 
 USAGE:
@@ -133,7 +133,7 @@ ARGS:
 
 ```
 $ toml set --help
-toml-set 0.2.1
+toml-set 0.2.2
 Edit the file to set some data (currently, just print modified version)
 
 USAGE:
