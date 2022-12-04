@@ -3,6 +3,7 @@ use std::ffi::OsString;
 use std::fs;
 use std::path::PathBuf;
 use std::process;
+use std::process::Output;
 use std::str;
 
 use tempfile::TempDir;
@@ -98,16 +99,39 @@ impl TestCaseState {
 
     pub fn expect_success(&mut self) -> String {
         let out = self.cmd.output().unwrap();
-        assert!(out.status.success());
-        assert!(out.stderr.is_empty());
+        if !out.status.success() {
+            self.fail(&out, "Command failed!");
+        } else if !out.stderr.is_empty() {
+            self.fail(&out, "Command printed to stderr despite success");
+        }
         String::from_utf8(out.stdout).unwrap()
     }
 
     pub fn expect_error(&mut self) -> String {
         let out = self.cmd.output().unwrap();
-        assert!(!out.status.success());
-        assert!(out.stdout.is_empty());
+        if out.status.success() {
+            self.fail(&out, "Command succeeded; expected failure");
+        } else if !out.stdout.is_empty() {
+            self.fail(&out, "Command printed to stdout despite failure");
+        }
         String::from_utf8(out.stderr).unwrap()
+    }
+
+    fn fail(&self, out: &Output, summary: &str) {
+        panic!(
+            "\n============\
+             \n{}\
+             \ncmdline: {:?}\
+             \nstatus: {}\
+             \nstderr: {}\
+             \nstdout: {}\
+             \n============\n",
+            summary,
+            self.cmd,
+            out.status,
+            String::from_utf8_lossy(&out.stderr),
+            String::from_utf8_lossy(&out.stdout),
+        )
     }
 
     pub fn write_file(&self, contents: &str) {
