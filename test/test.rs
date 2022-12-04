@@ -1,93 +1,123 @@
 use std::env;
-use std::ffi::{OsStr, OsString};
+use std::ffi::OsString;
 use std::fs;
 use std::path::PathBuf;
 use std::process;
-use std::process::Output;
 use std::str;
 
 use tempfile::TempDir;
 
-#[test]
-fn help_if_no_args() {
-    let err = toml_error([] as [&str; 0]);
-    assert!(err.contains("-h, --help"));
+macro_rules! tomltest {
+    ($name:ident, $fun:expr) => {
+        #[test]
+        fn $name() {
+            $fun(TestCaseState::new());
+        }
+    };
 }
 
-#[test]
-fn cmd_get() {
+tomltest!(help_if_no_args, |mut t: TestCaseState| {
+    assert!(t.expect_error().contains("-h, --help"));
+});
+
+tomltest!(get_string, |mut t: TestCaseState| {
     let contents = r#"[a]
 b = "c"
 [x]
 y = "z""#;
-    let (toml_file, _tempdir) = prep_file(contents);
+    t.write_file(contents);
+    t.cmd.args(["get", &t.filename(), "x.y"]);
+    assert_eq!("\"z\"\n", t.expect_success());
+});
 
-    let actual = toml_success(["get", &toml_file, "x.y"]);
-    assert_eq!("\"z\"\n", actual);
-
-    let actual = toml_success(["get", "--raw", &toml_file, "x.y"]);
-    assert_eq!("z\n", actual);
-
-    // x.z does not exist
-    toml_error(["get", &toml_file, "x.z"]);
-}
-
-#[test]
-fn cmd_set() {
+tomltest!(get_string_raw, |mut t: TestCaseState| {
     let contents = r#"[a]
 b = "c"
 [x]
 y = "z""#;
-    let (toml_file, _tempdir) = prep_file(contents);
+    t.write_file(contents);
+    t.cmd.args(["get", "--raw", &t.filename(), "x.y"]);
+    assert_eq!("z\n", t.expect_success());
+});
 
-    // x.y exists
-    let actual = toml_success(["set", &toml_file, "x.y", "new"]);
+tomltest!(get_missing, |mut t: TestCaseState| {
+    let contents = r#"[a]
+b = "c"
+[x]
+y = "z""#;
+    t.write_file(contents);
+    t.cmd.args(["get", &t.filename(), "x.z"]);
+    t.expect_error();
+});
+
+tomltest!(set_string_existing, |mut t: TestCaseState| {
+    let contents = r#"[a]
+b = "c"
+[x]
+y = "z""#;
+    t.write_file(contents);
+    t.cmd.args(["set", &t.filename(), "x.y", "new"]);
     let expected = r#"[a]
 b = "c"
 [x]
 y = "new"
 "#;
-    assert_eq!(expected, actual);
+    assert_eq!(expected, t.expect_success());
+});
 
-    let actual = toml_success(["set", &toml_file, "x.z", "123"]);
+tomltest!(set_string, |mut t: TestCaseState| {
+    let contents = r#"[a]
+b = "c"
+[x]
+y = "z""#;
+    t.write_file(contents);
+    t.cmd.args(["set", &t.filename(), "x.z", "123"]);
     let expected = r#"[a]
 b = "c"
 [x]
 y = "z"
 z = "123"
 "#;
-    assert_eq!(expected, actual);
+    assert_eq!(expected, t.expect_success());
+});
+
+struct TestCaseState {
+    cmd: process::Command,
+    #[allow(dead_code)] // We keep the TempDir around to prolong its lifetime
+    dir: TempDir,
+    filename: PathBuf,
 }
 
-fn toml_success<I, S>(args: I) -> String
-where
-    I: IntoIterator<Item = S>,
-    S: AsRef<OsStr>,
-{
-    let out = run_toml(args);
-    assert!(out.status.success());
-    assert!(out.stderr.is_empty());
-    String::from_utf8(out.stdout).unwrap()
-}
+impl TestCaseState {
+    pub fn new() -> Self {
+        let cmd = process::Command::new(get_exec_path());
+        let dir = tempfile::tempdir().expect("failed to create tempdir");
+        let filename = dir.path().join("test.toml");
+        TestCaseState { cmd, dir, filename }
+    }
 
-fn toml_error<I, S>(args: I) -> String
-where
-    I: IntoIterator<Item = S>,
-    S: AsRef<OsStr>,
-{
-    let out = run_toml(args);
-    assert!(!out.status.success());
-    assert!(out.stdout.is_empty());
-    String::from_utf8(out.stderr).unwrap()
-}
+    pub fn expect_success(&mut self) -> String {
+        let out = self.cmd.output().unwrap();
+        assert!(out.status.success());
+        assert!(out.stderr.is_empty());
+        String::from_utf8(out.stdout).unwrap()
+    }
 
-fn run_toml<I, S>(args: I) -> Output
-where
-    I: IntoIterator<Item = S>,
-    S: AsRef<OsStr>,
-{
-    let mut cmd = process::Command::new(get_exec_path());
-    cmd.args(args).output().unwrap()
+    pub fn expect_error(&mut self) -> String {
+        let out = self.cmd.output().unwrap();
+        assert!(!out.status.success());
+        assert!(out.stdout.is_empty());
+        String::from_utf8(out.stderr).unwrap()
+    }
+
+    pub fn write_file(&self, contents: &str) {
+        fs::write(&self.filename, contents).expect("failed to write test fixture");
+    }
+
+    pub fn filename(&self) -> String {
+        // TODO we don't really need a String here, do we?
+        String::from(self.filename.as_os_str().to_str().unwrap())
+    }
 }
 
 fn get_exec_path() -> PathBuf {
@@ -97,14 +127,4 @@ fn get_exec_path() -> PathBuf {
         .unwrap_or_else(|| OsString::from("target"))
         .into();
     target_dir.join("debug").join("toml")
-}
-
-fn prep_file(contents: &str) -> (String, TempDir) {
-    let toml_dir = tempfile::tempdir().expect("failed to create tempdir");
-    let toml_file = toml_dir.path().join("test.toml");
-    fs::write(&toml_file, contents).expect("failed to write tempfile");
-    (
-        String::from(toml_file.as_os_str().to_str().unwrap()),
-        toml_dir,
-    )
 }
