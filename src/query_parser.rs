@@ -14,7 +14,7 @@ use nom::{
     bytes::complete::{escaped_transform, take_while1, take_while_m_n},
     character::complete::{char, digit1, none_of, one_of},
     combinator::{all_consuming, map, map_res},
-    error::ErrorKind,
+    error::Error,
     multi::many0,
     sequence::{delimited, preceded, tuple},
     Err, IResult,
@@ -84,7 +84,7 @@ fn tpath(s: &str) -> IResult<&str, Vec<TpathSegment>> {
     ))(s)
 }
 
-pub fn parse_query(s: &str) -> Result<Query, Err<(&str, ErrorKind)>> {
+pub fn parse_query(s: &str) -> Result<Query, Err<Error<&str>>> {
     all_consuming(tpath)(s).map(|(trailing, res)| {
         assert!(trailing.is_empty());
         Query(res)
