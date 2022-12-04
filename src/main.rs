@@ -63,12 +63,12 @@ enum CliError {
 fn main() -> Result<(), Error> {
     let args = Args::from_args();
     match args {
-        Args::Get { path, query, opts } => get(path, &query, opts)?,
+        Args::Get { path, query, opts } => get(&path, &query, &opts)?,
         Args::Set {
             path,
             query,
             value_str,
-        } => set(path, &query, &value_str)?,
+        } => set(&path, &query, &value_str)?,
     }
     Ok(())
 }
@@ -80,9 +80,9 @@ fn read_parse(path: &PathBuf) -> Result<Document, Error> {
     Ok(data.parse::<Document>()?)
 }
 
-fn get(path: PathBuf, query: &str, opts: GetOpts) -> Result<(), Error> {
+fn get(path: &PathBuf, query: &str, opts: &GetOpts) -> Result<(), Error> {
     let tpath = parse_query_cli(query)?.0;
-    let doc = read_parse(&path)?;
+    let doc = read_parse(path)?;
 
     if opts.output_toml {
         print_toml_fragment(&doc, &tpath);
@@ -147,9 +147,9 @@ fn print_toml_fragment(doc: &Document, tpath: &[TpathSegment]) {
     print!("{}", doc);
 }
 
-fn set(path: PathBuf, query: &str, value_str: &str) -> Result<(), Error> {
+fn set(path: &PathBuf, query: &str, value_str: &str) -> Result<(), Error> {
     let tpath = parse_query_cli(query)?.0;
-    let mut doc = read_parse(&path)?;
+    let mut doc = read_parse(path)?;
 
     let mut item = doc.as_item_mut();
     let mut already_inline = false;
