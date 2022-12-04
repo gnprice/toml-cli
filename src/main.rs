@@ -43,6 +43,11 @@ struct GetOpts {
     /// Print as a TOML fragment (default: print as JSON)
     #[structopt(long)]
     output_toml: bool,
+
+    /// Print strings raw, not as JSON
+    // (No effect when the item isn't a string, just like `jq -r`.)
+    #[structopt(long, short)]
+    raw: bool,
 }
 
 #[derive(Debug, Fail)]
@@ -85,7 +90,14 @@ fn get(path: PathBuf, query: &str, opts: GetOpts) -> Result<(), Error> {
     }
 
     let item = walk_tpath(doc.as_item(), &tpath);
-    // TODO: support shell-friendly output like `jq -r`
+
+    if opts.raw {
+        if let Item::Value(Value::String(s)) = item {
+            println!("{}", s.value());
+            return Ok(());
+        }
+    }
+
     println!("{}", serde_json::to_string(&JsonItem(item))?);
     Ok(())
 }

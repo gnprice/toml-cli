@@ -34,16 +34,19 @@ segments*, each of which is either:
  * `.KEY`, to index into a table or inline-table, or
  * `[INDEX]`, to index into an array-of-tables or array.
 
-```
-$ toml get Cargo.toml dependencies.serde
-"1.0"
-```
-
 Data is emitted by default as JSON:
 
 ```
 $ toml get Cargo.toml bin[0]
 {"name":"toml","path":"src/main.rs"}
+```
+
+When the data is a string, the `--raw`/`-r` option prints it directly,
+for convenience in contexts like a shell script:
+
+```
+$ toml get Cargo.toml dependencies.serde --raw
+1.0
 ```
 
 If you need a more complex query, consider a tool like `jq`, with
@@ -118,6 +121,7 @@ USAGE:
 FLAGS:
     -h, --help           Prints help information
         --output-toml    Print as a TOML fragment (default: print as JSON)
+    -r, --raw            Print strings raw, not as JSON
     -V, --version        Prints version information
 
 ARGS:

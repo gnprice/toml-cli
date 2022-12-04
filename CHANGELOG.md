@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+* New option `toml get -r` / `--raw`.
+
 
 ## 0.2.1
 
