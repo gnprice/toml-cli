@@ -28,7 +28,7 @@ b = "c"
 y = "z""#;
     t.write_file(contents);
     t.cmd.args(["get", &t.filename(), "x.y"]);
-    assert_eq!("\"z\"\n", t.expect_success());
+    check_eq("\"z\"\n", &t.expect_success());
 });
 
 tomltest!(get_string_raw, |mut t: TestCaseState| {
@@ -38,7 +38,7 @@ b = "c"
 y = "z""#;
     t.write_file(contents);
     t.cmd.args(["get", "--raw", &t.filename(), "x.y"]);
-    assert_eq!("z\n", t.expect_success());
+    check_eq("z\n", &t.expect_success());
 });
 
 tomltest!(get_missing, |mut t: TestCaseState| {
@@ -63,7 +63,7 @@ b = "c"
 [x]
 y = "new"
 "#;
-    assert_eq!(expected, t.expect_success());
+    check_eq(expected, &t.expect_success());
 });
 
 tomltest!(set_string, |mut t: TestCaseState| {
@@ -79,7 +79,7 @@ b = "c"
 y = "z"
 z = "123"
 "#;
-    assert_eq!(expected, t.expect_success());
+    check_eq(expected, &t.expect_success());
 });
 
 struct TestCaseState {
@@ -151,4 +151,18 @@ fn get_exec_path() -> PathBuf {
         .unwrap_or_else(|| OsString::from("target"))
         .into();
     target_dir.join("debug").join("toml")
+}
+
+/// Like `assert_eq!`, but with more-readable output for debugging failed tests.
+///
+/// In particular, print the strings directly rather than with `{:?}`.
+#[rustfmt::skip]
+fn check_eq(expected: &str, actual: &str) {
+    if expected != actual {
+        panic!("
+~~~ expected:
+{}~~~ got:
+{}~~~
+", expected, actual);
+    }
 }
