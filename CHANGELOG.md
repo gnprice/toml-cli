@@ -7,7 +7,9 @@
 
 ## 0.2.1
 
-* Update dependencies, fixing build on recent Rust toolchains (#12).
+* Update `lexical-core` dependency, fixing build on recent Rust toolchains (#12).
+* Update `toml_edit` dependency, fixing parse error on dotted keys (#2).
+* Update dependencies generally.
 * Adjust so `cargo fmt` and `cargo clippy` are clean.
 
 
