@@ -9,13 +9,13 @@ use std::str;
 use tempfile::TempDir;
 
 #[test]
-fn integration_test_help_if_no_args() {
+fn help_if_no_args() {
     let err = toml_error([] as [&str; 0]);
     assert!(err.contains("-h, --help"));
 }
 
 #[test]
-fn integration_test_cmd_get() {
+fn cmd_get() {
     let contents = r#"[a]
 b = "c"
 [x]
@@ -33,7 +33,7 @@ y = "z""#;
 }
 
 #[test]
-fn integration_test_cmd_set() {
+fn cmd_set() {
     let contents = r#"[a]
 b = "c"
 [x]

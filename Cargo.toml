@@ -14,7 +14,7 @@ name = "toml"
 path = "src/main.rs"
 
 [[test]]
-name = "test"
+name = "integration"
 path = "test/test.rs"
 
 [dependencies]
