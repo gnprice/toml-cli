@@ -21,32 +21,27 @@ tomltest!(help_if_no_args, |mut t: TestCaseState| {
     assert!(t.expect_error().contains("-h, --help"));
 });
 
-tomltest!(get_string, |mut t: TestCaseState| {
-    let contents = r#"[a]
+const INPUT: &str = r#"
+[a]
 b = "c"
 [x]
-y = "z""#;
-    t.write_file(contents);
+y = "z"
+"#;
+
+tomltest!(get_string, |mut t: TestCaseState| {
+    t.write_file(INPUT);
     t.cmd.args(["get", &t.filename(), "x.y"]);
     check_eq("\"z\"\n", &t.expect_success());
 });
 
 tomltest!(get_string_raw, |mut t: TestCaseState| {
-    let contents = r#"[a]
-b = "c"
-[x]
-y = "z""#;
-    t.write_file(contents);
+    t.write_file(INPUT);
     t.cmd.args(["get", "--raw", &t.filename(), "x.y"]);
     check_eq("z\n", &t.expect_success());
 });
 
 tomltest!(get_missing, |mut t: TestCaseState| {
-    let contents = r#"[a]
-b = "c"
-[x]
-y = "z""#;
-    t.write_file(contents);
+    t.write_file(INPUT);
     t.cmd.args(["get", &t.filename(), "x.z"]);
     t.expect_error();
 });
