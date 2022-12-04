@@ -11,7 +11,7 @@ pub enum TpathSegment {
 
 use nom::{
     branch::alt,
-    bytes::complete::{escaped_transform, take_while1, take_while_m_n},
+    bytes::complete::{escaped_transform, tag, take_while1, take_while_m_n},
     character::complete::{char, digit1, none_of, one_of},
     combinator::{all_consuming, map, map_res},
     error::Error,
@@ -41,7 +41,13 @@ fn basic_string_escape(s: &str) -> IResult<&str, char> {
 }
 
 fn basic_string(s: &str) -> IResult<&str, String> {
-    let string_body = escaped_transform(none_of("\\\""), '\\', basic_string_escape);
+    let string_body = alt((
+        escaped_transform(none_of("\\\""), '\\', basic_string_escape),
+        // TODO report a nom bug in escaped_transform: it rejects empty sequence.
+        //   https://github.com/Geal/nom/issues/953#issuecomment-525557597
+        //   https://docs.rs/nom/7.1.1/src/nom/bytes/complete.rs.html#570-577
+        map(tag(""), String::from),
+    ));
     delimited(char('"'), string_body, char('"'))(s)
 }
 
@@ -100,6 +106,8 @@ fn test_parse_query() {
         ("a", Ok(vec![name("a")])),
         ("a.b", Ok(vec![name("a"), name("b")])),
         ("\"a.b\"", Ok(vec![name("a.b")])),
+        ("\"\"", Ok(vec![name("")])),
+        ("a.\"\".b", Ok(vec![name("a"), name(""), name("b")])),
         ("..", Err(())),
         ("a[1]", Ok(vec![name("a"), Num(1)])),
         ("a[b]", Err(())),

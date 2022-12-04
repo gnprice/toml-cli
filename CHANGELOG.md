@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+* Fix query parse error on empty quoted key `""`,
+  as in `toml get data.toml 'foo."".bar'` (#20).
+
 
 ## 0.2.2
 

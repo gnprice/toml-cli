@@ -78,7 +78,7 @@ tomltest_get1!(get_bool, "bool", true);
 // Test the various TOML key syntax: https://toml.io/en/v1.0.0#keys
 tomltest_get1!(get_bare_key, "bare-Key_1", "bare");
 tomltest_get1!(get_quoted_key, "\"quoted key‽\"", "quoted");
-// tomltest_get1!(get_empty_key, "\"\"", "empty"); // TODO failing
+tomltest_get1!(get_empty_key, "\"\"", "empty");
 tomltest_get1!(get_dotted_key, "dotted.a", "dotted-a");
 tomltest_get1!(get_dotted_spaced_key, "dotted.b", "dotted-b");
 tomltest_get1!(get_nested, "foo.x", "foo-x");
