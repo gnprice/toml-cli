@@ -81,11 +81,12 @@ fn get(path: PathBuf, query: &str, opts: GetOpts) -> Result<(), Error> {
 
     if opts.output_toml {
         print_toml_fragment(&doc, &tpath);
-    } else {
-        let item = walk_tpath(doc.as_item(), &tpath);
-        // TODO: support shell-friendly output like `jq -r`
-        println!("{}", serde_json::to_string(&JsonItem(item))?);
+        return Ok(());
     }
+
+    let item = walk_tpath(doc.as_item(), &tpath);
+    // TODO: support shell-friendly output like `jq -r`
+    println!("{}", serde_json::to_string(&JsonItem(item))?);
     Ok(())
 }
 
