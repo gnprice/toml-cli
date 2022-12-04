@@ -17,34 +17,80 @@ macro_rules! tomltest {
     };
 }
 
+macro_rules! tomltest_get_err {
+    ($name:ident, $args:expr, $pattern:expr) => {
+        tomltest!($name, |mut t: TestCaseState| {
+            t.write_file(INPUT);
+            t.cmd.args(["get", &t.filename()]).args($args);
+            assert!(t.expect_error().contains($pattern));
+        });
+    };
+}
+
+macro_rules! tomltest_get {
+    ($name:ident, $args:expr, $expected:expr) => {
+        tomltest!($name, |mut t: TestCaseState| {
+            t.write_file(INPUT);
+            t.cmd.args(["get", &t.filename()]).args($args);
+            check_eq($expected, &t.expect_success());
+        });
+    };
+}
+
+macro_rules! tomltest_get1 {
+    ($name:ident, $key:expr, $expected:expr) => {
+        tomltest!($name, |mut t: TestCaseState| {
+            t.write_file(INPUT);
+            t.cmd.args(["get", &t.filename(), $key]);
+            let expected = format!("{}\n", serde_json::to_string(&$expected).unwrap());
+            check_eq(&expected, &t.expect_success());
+        });
+    };
+}
+
 tomltest!(help_if_no_args, |mut t: TestCaseState| {
     assert!(t.expect_error().contains("-h, --help"));
 });
 
 const INPUT: &str = r#"
-[a]
-b = "c"
-[x]
-y = "z"
+key = "value"
+int = 17
+bool = true
+
+# this is a TOML comment
+bare-Key_1 = "bare"  # another TOML comment
+"quoted key‽" = "quoted"
+"" = "empty"
+dotted.a = "dotted-a"
+dotted . b = "dotted-b"
+
+[foo]
+x = "foo-x"
+y.yy = "foo-yy"
 "#;
 
-tomltest!(get_string, |mut t: TestCaseState| {
-    t.write_file(INPUT);
-    t.cmd.args(["get", &t.filename(), "x.y"]);
-    check_eq("\"z\"\n", &t.expect_success());
-});
+tomltest_get1!(get_string, "key", "value");
+tomltest_get1!(get_int, "int", 17);
+tomltest_get1!(get_bool, "bool", true);
+// TODO test remaining TOML value types: float, datetime, and aggregates:
+//   array, table, inline table, array of tables.
 
-tomltest!(get_string_raw, |mut t: TestCaseState| {
-    t.write_file(INPUT);
-    t.cmd.args(["get", "--raw", &t.filename(), "x.y"]);
-    check_eq("z\n", &t.expect_success());
-});
+// Test the various TOML key syntax: https://toml.io/en/v1.0.0#keys
+tomltest_get1!(get_bare_key, "bare-Key_1", "bare");
+tomltest_get1!(get_quoted_key, "\"quoted key‽\"", "quoted");
+// tomltest_get1!(get_empty_key, "\"\"", "empty"); // TODO failing
+tomltest_get1!(get_dotted_key, "dotted.a", "dotted-a");
+tomltest_get1!(get_dotted_spaced_key, "dotted.b", "dotted-b");
+tomltest_get1!(get_nested, "foo.x", "foo-x");
+tomltest_get1!(get_nested_dotted, "foo.y.yy", "foo-yy");
+// TODO test `get` inside arrays and arrays of tables
 
-tomltest!(get_missing, |mut t: TestCaseState| {
-    t.write_file(INPUT);
-    t.cmd.args(["get", &t.filename(), "x.z"]);
-    t.expect_error();
-});
+tomltest_get!(get_string_raw, ["--raw", "key"], "value\n");
+// TODO test `get --raw` on non-strings
+
+// TODO test `get --output-toml`
+
+tomltest_get_err!(get_missing, ["nosuchkey"], "panicked"); // TODO should make error better
 
 tomltest!(set_string_existing, |mut t: TestCaseState| {
     let contents = r#"[a]
