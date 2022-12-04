@@ -25,6 +25,9 @@ y = "z""#;
     let actual = toml_success(["get", &toml_file, "x.y"]);
     assert_eq!("\"z\"\n", actual);
 
+    let actual = toml_success(["get", "--raw", &toml_file, "x.y"]);
+    assert_eq!("z\n", actual);
+
     // x.z does not exist
     toml_error(["get", &toml_file, "x.z"]);
 }
