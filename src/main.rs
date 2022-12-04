@@ -73,7 +73,7 @@ fn main() -> Result<(), Error> {
     Ok(())
 }
 
-fn read_parse(path: PathBuf) -> Result<Document, Error> {
+fn read_parse(path: &PathBuf) -> Result<Document, Error> {
     // TODO: better report errors like ENOENT
     let data = fs::read(path)?;
     let data = str::from_utf8(&data)?;
@@ -82,7 +82,7 @@ fn read_parse(path: PathBuf) -> Result<Document, Error> {
 
 fn get(path: PathBuf, query: &str, opts: GetOpts) -> Result<(), Error> {
     let tpath = parse_query_cli(query)?.0;
-    let doc = read_parse(path)?;
+    let doc = read_parse(&path)?;
 
     if opts.output_toml {
         print_toml_fragment(&doc, &tpath);
@@ -149,7 +149,7 @@ fn print_toml_fragment(doc: &Document, tpath: &[TpathSegment]) {
 
 fn set(path: PathBuf, query: &str, value_str: &str) -> Result<(), Error> {
     let tpath = parse_query_cli(query)?.0;
-    let mut doc = read_parse(path)?;
+    let mut doc = read_parse(&path)?;
 
     let mut item = doc.as_item_mut();
     let mut already_inline = false;
