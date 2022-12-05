@@ -1,8 +1,8 @@
 mod query_parser;
 
-use std::fs;
 use std::path::PathBuf;
 use std::str;
+use std::{fs, process::exit};
 
 use failure::{Error, Fail};
 use serde::ser::{Serialize, SerializeMap, SerializeSeq, Serializer};
@@ -60,17 +60,20 @@ enum CliError {
     ArrayIndexOob(),
 }
 
-fn main() -> Result<(), Error> {
+fn main() {
     let args = Args::from_args();
-    match args {
-        Args::Get { path, query, opts } => get(&path, &query, &opts)?,
+    let result = match args {
+        Args::Get { path, query, opts } => get(&path, &query, &opts),
         Args::Set {
             path,
             query,
             value_str,
-        } => set(&path, &query, &value_str)?,
-    }
-    Ok(())
+        } => set(&path, &query, &value_str),
+    };
+    result.unwrap_or_else(|err| {
+        eprintln!("toml: {}", err);
+        exit(1);
+    })
 }
 
 fn read_parse(path: &PathBuf) -> Result<Document, Error> {
