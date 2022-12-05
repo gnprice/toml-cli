@@ -115,6 +115,16 @@ $ toml get --help
 toml-get 0.2.2
 Print some data from the file
 
+Read the given TOML file, find the data within it at the given query,
+and print.
+
+If the TOML document does not have the given key, exit with a
+failure status.
+
+Output is JSON by default.  With `--raw`/`-r`, if the data is a
+string, print it directly.  With `--output-toml`, print the data
+as a fragment of TOML.
+
 USAGE:
     toml get [FLAGS] <path> <query>
 
