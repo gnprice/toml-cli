@@ -22,7 +22,7 @@ macro_rules! tomltest_get_err {
         tomltest!($name, |mut t: TestCaseState| {
             t.write_file(INPUT);
             t.cmd.args(["get", &t.filename()]).args($args);
-            assert!(t.expect_error().contains($pattern));
+            check_contains($pattern, &t.expect_error());
         });
     };
 }
@@ -49,7 +49,7 @@ macro_rules! tomltest_get1 {
 }
 
 tomltest!(help_if_no_args, |mut t: TestCaseState| {
-    assert!(t.expect_error().contains("-h, --help"));
+    check_contains("-h, --help", &t.expect_error());
 });
 
 const INPUT: &str = r#"
@@ -204,6 +204,20 @@ fn get_exec_path() -> PathBuf {
         .unwrap_or_else(|| OsString::from("target"))
         .into();
     target_dir.join("debug").join("toml")
+}
+
+/// Like `assert!(actual.contains(pattern))`, but with more informative output.
+#[rustfmt::skip]
+fn check_contains(pattern: &str, actual: &str) {
+    if actual.contains(pattern) {
+        return;
+    }
+    panic!("
+/~~ expected pattern:
+{}
+/~~ got:
+{}/~~
+", pattern, actual);
 }
 
 /// Like `assert_eq!`, but with more-readable output for debugging failed tests.
