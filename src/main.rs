@@ -58,6 +58,11 @@ enum CliError {
     NotArray(),
     #[fail(display = "array index out of bounds")]
     ArrayIndexOob(),
+}
+
+/// An error that should cause a failure exit, but no message on stderr.
+#[derive(Debug, Fail)]
+enum SilentError {
     #[fail(display = "key not found: {}", key)]
     KeyNotFound { key: String },
 }
@@ -73,7 +78,12 @@ fn main() {
         } => set(&path, &query, &value_str),
     };
     result.unwrap_or_else(|err| {
-        eprintln!("toml: {}", err);
+        match err.downcast::<SilentError>() {
+            Ok(_) => {}
+            Err(err) => {
+                eprintln!("toml: {}", err);
+            }
+        }
         exit(1);
     })
 }
@@ -95,7 +105,7 @@ fn get(path: &PathBuf, query: &str, opts: &GetOpts) -> Result<(), Error> {
     }
 
     let item = walk_tpath(doc.as_item(), &tpath);
-    let item = item.ok_or(CliError::KeyNotFound { key: query.into() })?;
+    let item = item.ok_or(SilentError::KeyNotFound { key: query.into() })?;
 
     if opts.raw {
         if let Item::Value(Value::String(s)) = item {

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+* `toml get` on a missing key no longer panics.  This gives it the same
+  behavior as `git config`: print nothing, and exit with failure. (#14)
 * Fix query parse error on empty quoted key `""`,
   as in `toml get data.toml 'foo."".bar'`. (#20)
 

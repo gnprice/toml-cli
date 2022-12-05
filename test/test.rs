@@ -27,6 +27,16 @@ macro_rules! tomltest_get_err {
     };
 }
 
+macro_rules! tomltest_get_err_empty {
+    ($name:ident, $args:expr) => {
+        tomltest!($name, |mut t: TestCaseState| {
+            t.write_file(INPUT);
+            t.cmd.args(["get", &t.filename()]).args($args);
+            check_eq("", &t.expect_error());
+        });
+    };
+}
+
 macro_rules! tomltest_get {
     ($name:ident, $args:expr, $expected:expr) => {
         tomltest!($name, |mut t: TestCaseState| {
@@ -91,8 +101,8 @@ tomltest_get!(get_string_raw, ["--raw", "key"], "value\n");
 // TODO test `get --output-toml`
 
 tomltest_get_err!(get_invalid_query, [".bad"], "syntax error in query: .bad");
-tomltest_get_err!(get_missing, ["nosuchkey"], "key not found");
-tomltest_get_err!(get_missing_num, ["key[1]"], "key not found");
+tomltest_get_err_empty!(get_missing, ["nosuchkey"]);
+tomltest_get_err_empty!(get_missing_num, ["key[1]"]);
 
 macro_rules! tomltest_set {
     ($name:ident, $args:expr, $expected:expr) => {
