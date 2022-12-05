@@ -90,7 +90,8 @@ tomltest_get!(get_string_raw, ["--raw", "key"], "value\n");
 
 // TODO test `get --output-toml`
 
-tomltest_get_err!(get_missing, ["nosuchkey"], "panicked"); // TODO should make error better
+tomltest_get_err!(get_missing, ["nosuchkey"], "key not found");
+tomltest_get_err!(get_missing_num, ["key[1]"], "key not found");
 
 macro_rules! tomltest_set {
     ($name:ident, $args:expr, $expected:expr) => {

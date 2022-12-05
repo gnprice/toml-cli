@@ -58,6 +58,8 @@ enum CliError {
     NotArray(),
     #[fail(display = "array index out of bounds")]
     ArrayIndexOob(),
+    #[fail(display = "key not found: {}", key)]
+    KeyNotFound { key: String },
 }
 
 fn main() {
@@ -93,6 +95,7 @@ fn get(path: &PathBuf, query: &str, opts: &GetOpts) -> Result<(), Error> {
     }
 
     let item = walk_tpath(doc.as_item(), &tpath);
+    let item = item.ok_or(CliError::KeyNotFound { key: query.into() })?;
 
     if opts.raw {
         if let Item::Value(Value::String(s)) = item {
@@ -207,15 +210,18 @@ fn parse_query_cli(query: &str) -> Result<Query, CliError> {
     })
 }
 
-fn walk_tpath<'a>(mut item: &'a toml_edit::Item, tpath: &[TpathSegment]) -> &'a toml_edit::Item {
+fn walk_tpath<'a>(
+    mut item: &'a toml_edit::Item,
+    tpath: &[TpathSegment],
+) -> Option<&'a toml_edit::Item> {
     use TpathSegment::{Name, Num};
     for seg in tpath {
         match seg {
-            Name(n) => item = &item[n],
-            Num(n) => item = &item[n],
+            Name(n) => item = item.get(n)?,
+            Num(n) => item = item.get(n)?,
         }
     }
-    item
+    Some(item)
 }
 
 // TODO Can we do newtypes more cleanly than this?
