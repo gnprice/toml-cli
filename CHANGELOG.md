@@ -3,18 +3,18 @@
 ## Unreleased
 
 * Fix query parse error on empty quoted key `""`,
-  as in `toml get data.toml 'foo."".bar'` (#20).
+  as in `toml get data.toml 'foo."".bar'`. (#20)
 
 
 ## 0.2.2
 
-* New option `toml get -r` / `--raw` (#19).
+* New option `toml get -r` / `--raw`. (#19)
 
 
 ## 0.2.1
 
-* Update `lexical-core` dependency, fixing build on recent Rust toolchains (#12).
-* Update `toml_edit` dependency, fixing parse error on dotted keys (#2).
+* Update `lexical-core` dependency, fixing build on recent Rust toolchains. (#12)
+* Update `toml_edit` dependency, fixing parse error on dotted keys. (#2)
 * Update dependencies generally.
 * Adjust so `cargo fmt` and `cargo clippy` are clean.
 
