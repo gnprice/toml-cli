@@ -52,8 +52,8 @@ struct GetOpts {
 
 #[derive(Debug, Fail)]
 enum CliError {
-    #[fail(display = "bad query")]
-    BadQuery(),
+    #[fail(display = "syntax error in query: {}", _0)]
+    QuerySyntaxError(String),
     #[fail(display = "numeric index into non-array")]
     NotArray(),
     #[fail(display = "array index out of bounds")]
@@ -206,7 +206,7 @@ fn set(path: &PathBuf, query: &str, value_str: &str) -> Result<(), Error> {
 
 fn parse_query_cli(query: &str) -> Result<Query, CliError> {
     parse_query(query).map_err(|_err| {
-        CliError::BadQuery() // TODO: specific message
+        CliError::QuerySyntaxError(query.into()) // TODO: perhaps use parse-error details?
     })
 }
 

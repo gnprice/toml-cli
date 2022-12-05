@@ -90,6 +90,7 @@ tomltest_get!(get_string_raw, ["--raw", "key"], "value\n");
 
 // TODO test `get --output-toml`
 
+tomltest_get_err!(get_invalid_query, [".bad"], "syntax error in query: .bad");
 tomltest_get_err!(get_missing, ["nosuchkey"], "key not found");
 tomltest_get_err!(get_missing_num, ["key[1]"], "key not found");
 
