@@ -25,6 +25,26 @@ The command's status is **experimental**.  The current interface does
 not yet serve its purposes as well as it could, and **incompatible
 changes** are anticipated.
 
+
+## Installation
+
+If you have Cargo (the Rust build tool) installed, you can install the
+`toml` CLI by running:
+```
+$ cargo install toml-cli
+```
+
+To install Cargo, follow the instructions [on rust-lang.org][install-rust].
+
+Currently no binaries are published for releases.  Publishing
+binaries, in various convenient forms, is a desired future step
+([#3], [#5]).
+
+[install-rust]: https://www.rust-lang.org/learn/get-started
+[#3]: https://github.com/gnprice/toml-cli/issues/3
+[#5]: https://github.com/gnprice/toml-cli/issues/5
+
+
 ## Usage
 
 ### Reading: `toml get`
