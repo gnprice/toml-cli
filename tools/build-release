@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+die() {
+    echo "$1" >&2
+    exit 1
+}
+
+(( $# == 1 )) || die "usage: tools/build-release TARGET"
+opt_target="$1"
+
+get_version() {
+    cargo run -q -- get Cargo.toml package.version --raw
+}
+
+archive() {
+    local slug_target="$1" target_dir="$2"
+    local version slug tmpdir staging outdir artifact
+
+    version=$(get_version)
+    slug="toml-${version}-${slug_target}"
+
+    tmpdir=$(mktemp -d)
+    staging="${tmpdir}/${slug}"
+    mkdir -p "${staging}"
+    cp {README.md,LICENSE,CHANGELOG.md} "${staging}"/
+    cp "${target_dir}"/release/toml "${staging}"/
+
+    outdir=target/archive
+    artifact="${outdir}"/"${slug}".tar.gz
+    mkdir -p "${outdir}"
+    tar -czf "${artifact}" -C "${tmpdir}" "${slug}"
+    echo "${artifact}"
+}
+
+# Build (a tarball containing) a statically-linked binary for Linux.
+build_linux_x86() {
+    local rust_target=x86_64-unknown-linux-musl
+    local target_dir=target/"${rust_target}"
+
+    cross build --verbose --release --target "${rust_target}"
+    strip "${target_dir}"/release/toml
+
+    # Call the artifact "toml-0.M.N-x86_64-linux.tar.gz" rather than
+    # a more puzzling-looking name with "unknown" and "musl".
+    archive x86_64-linux "${target_dir}"
+}
+
+case "${opt_target}" in
+    linux-x86) build_linux_x86;;
+    # linux-arm)  # TODO
+    # macos)      # TODO
+    # archive) archive "$@";;  # perhaps add for use developing this script
+esac
