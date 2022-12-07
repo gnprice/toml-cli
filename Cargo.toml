@@ -7,7 +7,7 @@ repository = "https://github.com/gnprice/toml-cli"
 readme = "README.md"
 license = "MIT"
 
-edition = "2018"
+edition = "2021"
 
 [[bin]]
 name = "toml"
