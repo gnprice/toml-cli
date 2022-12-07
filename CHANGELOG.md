@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+* Switched from `failure` as a dependency to `anyhow` and `thiserror`,
+  its recommended successors.
+
 
 ## 0.2.3
 

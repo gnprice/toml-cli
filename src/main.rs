@@ -4,9 +4,10 @@ use std::path::PathBuf;
 use std::str;
 use std::{fs, process::exit};
 
-use failure::{Error, Fail};
+use anyhow::Error;
 use serde::ser::{Serialize, SerializeMap, SerializeSeq, Serializer};
 use structopt::StructOpt;
+use thiserror::Error;
 use toml_edit::{value, Document, Item, Table, Value};
 
 use query_parser::{parse_query, Query, TpathSegment};
@@ -63,20 +64,20 @@ struct GetOpts {
     raw: bool,
 }
 
-#[derive(Debug, Fail)]
+#[derive(Debug, Error)]
 enum CliError {
-    #[fail(display = "syntax error in query: {}", _0)]
+    #[error("syntax error in query: {0}")]
     QuerySyntaxError(String),
-    #[fail(display = "numeric index into non-array")]
+    #[error("numeric index into non-array")]
     NotArray(),
-    #[fail(display = "array index out of bounds")]
+    #[error("array index out of bounds")]
     ArrayIndexOob(),
 }
 
 /// An error that should cause a failure exit, but no message on stderr.
-#[derive(Debug, Fail)]
+#[derive(Debug, Error)]
 enum SilentError {
-    #[fail(display = "key not found: {}", key)]
+    #[error("key not found: {key}")]
     KeyNotFound { key: String },
 }
 
