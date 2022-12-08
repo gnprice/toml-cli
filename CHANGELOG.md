@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+* Started publishing release binaries for Linux.  These have also been
+  backfilled for past releases, back to v0.2.1. (#3)
 * Switched from `failure` as a dependency to `anyhow` and `thiserror`,
   its recommended successors.
 

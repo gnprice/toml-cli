@@ -28,6 +28,21 @@ changes** are anticipated.
 
 ## Installation
 
+### Linux download
+
+[Precompiled binaries are published for Linux.][releases]
+The binaries are static executables, and work on any Linux
+distribution.
+
+Currently no binaries are published for other platforms.
+Doing so for more platforms is a desired future step
+([#22], [#21], [#5]).  In the meantime, see Cargo instructions below.
+
+[releases]: https://github.com/gnprice/toml-cli/releases
+
+
+### Using Cargo
+
 If you have Cargo (the Rust build tool) installed, you can install the
 `toml` CLI by running:
 ```
@@ -36,13 +51,11 @@ $ cargo install toml-cli
 
 To install Cargo, follow the instructions [on rust-lang.org][install-rust].
 
-Currently no binaries are published for releases.  Publishing
-binaries, in various convenient forms, is a desired future step
-([#3], [#5]).
-
 [install-rust]: https://www.rust-lang.org/learn/get-started
-[#3]: https://github.com/gnprice/toml-cli/issues/3
+
 [#5]: https://github.com/gnprice/toml-cli/issues/5
+[#21]: https://github.com/gnprice/toml-cli/issues/21
+[#22]: https://github.com/gnprice/toml-cli/issues/22
 
 
 ## Usage
