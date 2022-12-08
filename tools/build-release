@@ -13,6 +13,34 @@ get_version() {
     cargo run -q -- get Cargo.toml package.version --raw
 }
 
+# Export SOURCE_DATE_EPOCH, computing from Git, if not already present.
+#
+# This means that if some higher-level build script wants to set this
+# variable, we'll follow its choice; otherwise, we use the commit date
+# of the current Git commit.
+#
+# See: https://reproducible-builds.org/docs/source-date-epoch/
+export_source_date_epoch() {
+    : "${SOURCE_DATE_EPOCH:=$(git log -1 --format=%ct)}"
+    export SOURCE_DATE_EPOCH
+}
+
+# Like `tar -czf`, but with more-reproducible output.
+tar_czf_reproducibly() {
+    local outfile="$1"
+    shift
+
+    export_source_date_epoch
+
+    # For this formidable set of `tar` options, see:
+    #   https://reproducible-builds.org/docs/archives/
+    tar --sort=name --mtime="@${SOURCE_DATE_EPOCH}" \
+        --owner=0 --group=0 --numeric-owner \
+        --pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime \
+        -c "$@" \
+      | gzip -n >"${outfile}"
+}
+
 archive() {
     local slug_target="$1" target_dir="$2"
     local version slug tmpdir staging outdir artifact
@@ -29,7 +57,7 @@ archive() {
     outdir=target/archive
     artifact="${outdir}"/"${slug}".tar.gz
     mkdir -p "${outdir}"
-    tar -czf "${artifact}" -C "${tmpdir}" "${slug}"
+    tar_czf_reproducibly "${artifact}" -C "${tmpdir}" "${slug}"
     echo "${artifact}"
 }
 
@@ -37,6 +65,8 @@ archive() {
 build_linux_x86() {
     local rust_target=x86_64-unknown-linux-musl
     local target_dir=target/"${rust_target}"
+
+    export_source_date_epoch
 
     cross build --verbose --release --target "${rust_target}"
     strip "${target_dir}"/release/toml
