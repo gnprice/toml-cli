@@ -50,24 +50,25 @@ start_release() {
     git commit -am "Release version ${new_version}."
     git tag "${tag_name}"
 
+    prepare_colors
     cat <<EOF >&2
 
-Version updated: ${new_version}
+Version updated: ${bold}${new_version}${reset}
 
 Next steps:
 
-  \$ git log --stat -p upstream..  # check your work
+  \$ ${bold}git log --stat -p upstream..${reset}  # check your work
 
-  \$ tools/build-release linux-x86
+  \$ ${bold}tools/build-release linux-x86${reset}
 
-  \$ git push --atomic upstream main ${tag_name}
+  \$ ${bold}git push --atomic upstream main ${tag_name}${reset}
 
-  \$ cargo publish
+  \$ ${bold}cargo publish${reset}
 
-  * visit https://github.com/gnprice/toml-cli/releases and:
+  * visit ${bold}https://github.com/gnprice/toml-cli/releases${reset} and:
     * create release from tag
     * add changelog
-    * upload artifacts target/archive/toml-${new_version}-*
+    * upload artifacts ${bold}target/archive/toml-${new_version}-*${reset}
 EOF
 }
 
