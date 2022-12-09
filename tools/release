@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+this_file=$(readlink -f "${BASH_SOURCE[0]}")
+this_dir=${this_file%/*}
+. "${this_dir}"/lib.bash
+
+increment_version() {
+    local bump_type="$1" old_version="$2"
+    case "${bump_type}" in
+        patch) echo "${old_version}" \
+                 | perl -F'\.' -le 'print(join ".", $F[0], $F[1], $F[2]+1)' ;;
+        minor) echo "${old_version}" \
+                 | perl -F'\.' -le 'print(join ".", $F[0], $F[1]+1, 0)' ;;
+        major) echo "${old_version}" \
+                 | perl -F'\.' -le 'print(join ".", $F[0]+1, 0, 0)' ;;
+    esac
+}
+
+update_version() {
+    local old_version="$1" new_version="$2"
+    cargo run -q -- set Cargo.toml package.version "${new_version}" \
+      | sponge Cargo.toml
+    new_version=$new_version \
+      perl -i -0pe 's/^name = "toml-cli"\nversion = \K".*?"/"${ENV{new_version}}"/m' \
+      Cargo.lock
+    old_version=$old_version new_version=$new_version \
+      perl -i -0pe 's/^toml-\S+ \K${ENV{old_version}}/${ENV{new_version}}/gm' \
+      README.md
+    new_version=$new_version \
+      perl -i -0pe 's/^## Unreleased\n\K/\n\n## ${ENV{new_version}}\n/m' \
+      CHANGELOG.md
+}
+
+start_release() {
+    (( $# == 1 )) || die "usage: tools/release start {patch|minor|major}"
+    local bump_type="$1"
+    case "${bump_type}" in
+        patch|minor|major) ;;
+        *) die "usage: tools/release start {patch|minor|major}"
+    esac
+
+    local old_version new_version tag_name
+    old_version=$(get_version)
+    new_version=$(increment_version "${bump_type}" "${old_version}")
+    tag_name=v${new_version}
+
+    update_version "${old_version}" "${new_version}"
+
+    git commit -am "Release version ${new_version}."
+    git tag "${tag_name}"
+
+    cat <<EOF >&2
+
+Version updated: ${new_version}
+
+Next steps:
+
+  \$ git log --stat -p upstream..  # check your work
+
+  \$ tools/build-release linux-x86
+
+  \$ git push --atomic upstream main ${tag_name}
+
+  \$ cargo publish
+
+  * visit https://github.com/gnprice/toml-cli/releases and:
+    * create release from tag
+    * add changelog
+    * upload artifacts target/archive/toml-${new_version}-*
+EOF
+}
+
+case "${1-}" in
+    start) shift && start_release "$@" ;;
+    *) die "usage: tools/release start ...ARGS" ;;
+esac

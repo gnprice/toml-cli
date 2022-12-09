@@ -1,14 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-die() {
-    echo "$1" >&2
-    exit 1
-}
-
-get_version() {
-    cargo run -q -- get Cargo.toml package.version --raw
-}
+this_file=$(readlink -f "${BASH_SOURCE[0]}")
+this_dir=${this_file%/*}
+. "${this_dir}"/lib.bash
 
 # Export SOURCE_DATE_EPOCH, computing from Git, if not already present.
 #
