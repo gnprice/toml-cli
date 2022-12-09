@@ -6,9 +6,6 @@ die() {
     exit 1
 }
 
-(( $# == 1 )) || die "usage: tools/build-release TARGET"
-opt_target="$1"
-
 get_version() {
     cargo run -q -- get Cargo.toml package.version --raw
 }
@@ -76,9 +73,13 @@ build_linux_x86() {
     archive x86_64-linux "${target_dir}"
 }
 
+(( $# == 1 )) || die "usage: tools/build-release TARGET"
+opt_target="$1"
+
 case "${opt_target}" in
     linux-x86) build_linux_x86;;
     # linux-arm)  # TODO
     # macos)      # TODO
     # archive) archive "$@";;  # perhaps add for use developing this script
+    *) die "unknown target: ${opt_target}";;
 esac
