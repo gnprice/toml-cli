@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+set -euo pipefail
+shopt -s globstar
+
+show_failure() {
+    echo
+    echo "FAILED"
+}
+trap '{ set +x; } 2>&- ; show_failure' EXIT
+
+# shellcheck disable=SC2046,SC2207
+shell_scripts=( $(git ls-files tools/) )
+
+set -x
+cargo test
+cargo check
+cargo clippy
+shellcheck -P SCRIPTDIR -- "${shell_scripts[@]}"
+cargo fmt --check
+{ set +x; } 2>&-
+
+trap - EXIT
+echo "Success!"
