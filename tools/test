@@ -12,9 +12,9 @@ trap '{ set +x; } 2>&- ; show_failure' EXIT
 shell_scripts=( $(git ls-files tools/) )
 
 set -x
-cargo test
-cargo check
-cargo clippy
+cargo test -q
+cargo check -q
+cargo clippy -q
 shellcheck -P SCRIPTDIR -- "${shell_scripts[@]}"
 cargo fmt --check
 { set +x; } 2>&-
