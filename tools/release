@@ -19,7 +19,7 @@ increment_version() {
 
 update_version() {
     local old_version="$1" new_version="$2"
-    cargo run -q -- set --write Cargo.toml package.version "${new_version}"
+    cargo run -q -- set Cargo.toml package.version "${new_version}"
     new_version=$new_version \
       perl -i -0pe 's/^name = "toml-cli"\nversion = \K".*?"/"${ENV{new_version}}"/m' \
       Cargo.lock

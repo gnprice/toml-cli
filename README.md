@@ -95,7 +95,8 @@ jemalloc
 (The TOML path `.` is an alias for the empty path, describing the
 whole file.)
 
-### Writing (ish): `toml set`
+
+### Writing: `toml set`
 
 To edit the data, pass a TOML path specifying where in the parse tree
 to put it, and then the data value to place there:
@@ -107,6 +108,8 @@ b = "c"
 EOF
 
 $ toml set foo.toml x.y z
+
+$ cat foo.toml
 [a]
 b = "c"
 
@@ -114,10 +117,13 @@ b = "c"
 y = "z"
 ```
 
-This subcommand is quite raw in two respects:
- * We don't actually edit the file; we only print out the new version.
+This subcommand is somewhat raw:
  * The value to be set must be a string; input of booleans, arrays, etc.
-   is unimplemented.
+   is unimplemented. ([#16], [#10])
+
+[#10]: https://github.com/gnprice/toml-cli/issues/10
+[#16]: https://github.com/gnprice/toml-cli/issues/16
+
 
 ## Reference
 
@@ -179,12 +185,6 @@ $ toml set --help
 toml-set 0.2.3
 Edit the file to set some data
 
-Use `--write` to actually write the new version back to the file,
-or `--print` to print it to stdout instead.
-
-For legacy reasons, there is no default; either `--write` or `--print`
-is required.  A future version will change the default to `--write`.
-
 USAGE:
     toml set [FLAGS] <path> <query> <value-str>
 
@@ -192,7 +192,7 @@ FLAGS:
     -h, --help       Prints help information
         --print      Print the new version instead of editing the file
     -V, --version    Prints version information
-        --write      Write the new version back to the file instead of printing it
+        --write      (default) Write the new version back to the file
 
 ARGS:
     <path>         Path to the TOML file to edit

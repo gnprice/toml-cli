@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+* `toml set` now behaves by default like `toml set --write`, without
+  requiring an explicit `--write`.  This completes the transition from the
+  legacy behavior, which was equivalent to `toml set --print`. (#7)
+
 * **Breaking**: `toml set` now requires an explicit `--write` or `--print`.
 
   As a reminder, a future version will change the default behavior of

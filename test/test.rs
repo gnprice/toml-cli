@@ -131,25 +131,25 @@ y = 1
 "#;
 
 #[rustfmt::skip]
-tomltest_set!(set_string_existing, ["--write", "x.y", "new"], r#"
+tomltest_set!(set_string_existing, ["x.y", "new"], r#"
 [x]
 y = "new"
 "#);
 
 #[rustfmt::skip]
-tomltest_set!(set_string_existing_table, ["--write", "x.z", "123"], format!(
+tomltest_set!(set_string_existing_table, ["x.z", "123"], format!(
 r#"{INITIAL}z = "123"
 "#));
 
 #[rustfmt::skip]
-tomltest_set!(set_string_new_table, ["--write", "foo.bar", "baz"], format!(
+tomltest_set!(set_string_new_table, ["foo.bar", "baz"], format!(
 r#"{INITIAL}
 [foo]
 bar = "baz"
 "#));
 
 #[rustfmt::skip]
-tomltest_set!(set_string_toplevel, ["--write", "foo", "bar"], format!(
+tomltest_set!(set_string_toplevel, ["foo", "bar"], format!(
 r#"foo = "bar"
 {INITIAL}"#));
 
@@ -157,6 +157,12 @@ r#"foo = "bar"
 // TODO test `set` when existing value is an array, table, or array of tables
 // TODO test `set` inside existing array or inline table
 // TODO test `set` inside existing array of tables
+
+#[rustfmt::skip]
+tomltest_set!(set_write, ["--write", "x.y", "new"], r#"
+[x]
+y = "new"
+"#);
 
 #[rustfmt::skip]
 tomltest!(set_print, |mut t: TestCaseState| {
