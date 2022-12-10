@@ -1,5 +1,4 @@
 use std::env;
-use std::ffi::OsString;
 use std::fs;
 use std::path::PathBuf;
 use std::process;
@@ -156,7 +155,7 @@ struct TestCaseState {
 
 impl TestCaseState {
     pub fn new() -> Self {
-        let cmd = process::Command::new(get_exec_path());
+        let cmd = process::Command::new(env!("CARGO_BIN_EXE_toml"));
         let dir = tempfile::tempdir().expect("failed to create tempdir");
         let filename = dir.path().join("test.toml");
         TestCaseState { cmd, dir, filename }
@@ -207,15 +206,6 @@ impl TestCaseState {
         // TODO we don't really need a String here, do we?
         String::from(self.filename.as_os_str().to_str().unwrap())
     }
-}
-
-fn get_exec_path() -> PathBuf {
-    // TODO is there no cleaner way to get this from Cargo?
-    // Also should it really be "debug"?
-    let target_dir: PathBuf = env::var_os("CARGO_TARGET_DIR")
-        .unwrap_or_else(|| OsString::from("target"))
-        .into();
-    target_dir.join("debug").join("toml")
 }
 
 /// Like `assert!(actual.contains(pattern))`, but with more informative output.
