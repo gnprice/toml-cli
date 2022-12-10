@@ -27,28 +27,34 @@ enum Args {
     /// Output is JSON by default.  With `--raw`/`-r`, if the data is a
     /// string, print it directly.  With `--output-toml`, print the data
     /// as a fragment of TOML.
-    // Without verbatim_doc_comments, the paragraphs get rewrapped to like
+    // Without verbatim_doc_comment, the paragraphs get rewrapped to like
     // 120 columns wide.
     #[structopt(verbatim_doc_comment)]
     Get {
         /// Path to the TOML file to read
         #[structopt(parse(from_os_str))]
         path: PathBuf,
+
         /// Query within the TOML data (e.g. `dependencies.serde`, `foo[0].bar`)
         query: String,
+
         #[structopt(flatten)]
         opts: GetOpts,
     },
+
     /// Edit the file to set some data (currently, just print modified version)
     Set {
         /// Path to the TOML file to read
         #[structopt(parse(from_os_str))]
         path: PathBuf,
+
         /// Query within the TOML data (e.g. `dependencies.serde`, `foo[0].bar`)
         query: String,
+
         /// String value to place at the given spot (bool, array, etc. are TODO)
         value_str: String, // TODO more forms
     },
+    //
     // TODO: append/add (name TBD)
 }
 
