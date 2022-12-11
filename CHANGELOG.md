@@ -23,6 +23,11 @@
 
 ## 0.2.1
 
+* **Breaking**: Previously `toml get` on a missing key would print "null"
+  and exit with success.  Now it panics.  (The panic was filed as #14 and
+  fixed in v0.2.3.  Since v0.2.3 there are also tests that would catch this
+  sort of unplanned behavior change.)
+
 * Update `lexical-core` dependency, fixing build on recent Rust toolchains. (#12)
 * Update `toml_edit` dependency, fixing parse error on dotted keys. (#2)
 * Update dependencies generally.
