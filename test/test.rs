@@ -131,25 +131,25 @@ y = 1
 "#;
 
 #[rustfmt::skip]
-tomltest_set!(set_string_existing, ["x.y", "new"], r#"
+tomltest_set!(set_string_existing, ["--print", "x.y", "new"], r#"
 [x]
 y = "new"
 "#);
 
 #[rustfmt::skip]
-tomltest_set!(set_string_existing_table, ["x.z", "123"], format!(
+tomltest_set!(set_string_existing_table, ["--print", "x.z", "123"], format!(
 r#"{INITIAL}z = "123"
 "#));
 
 #[rustfmt::skip]
-tomltest_set!(set_string_new_table, ["foo.bar", "baz"], format!(
+tomltest_set!(set_string_new_table, ["--print", "foo.bar", "baz"], format!(
 r#"{INITIAL}
 [foo]
 bar = "baz"
 "#));
 
 #[rustfmt::skip]
-tomltest_set!(set_string_toplevel, ["foo", "bar"], format!(
+tomltest_set!(set_string_toplevel, ["--print", "foo", "bar"], format!(
 r#"foo = "bar"
 {INITIAL}"#));
 
@@ -168,12 +168,6 @@ tomltest!(set_write, |mut t: TestCaseState| {
 y = "new"
 "#, &t.read_file());
 });
-
-#[rustfmt::skip]
-tomltest_set!(set_print, ["--print", "x.y", "new"], r#"
-[x]
-y = "new"
-"#);
 
 // TODO the CLI error message for this shows a usage message with a glitch:
 //     toml set <path> <query> <value-str> --print --write

@@ -254,6 +254,18 @@ fn set(path: &PathBuf, query: &str, value_str: &str, opts: &SetOpts) -> Result<(
     }
     *item = value(value_str);
 
+    if !opts.write && !opts.print {
+        // TODO move this to more the CLI-parsing phase
+        // TODO perhaps make fancier warning output
+        eprint!(
+            "------------------------------------------------------------\n\
+             toml: WARNING: the default `toml set` behavior will change\n\
+             toml: Use an explicit `toml set --print` for the old behavior,\n\
+             toml: or `toml set --write` to actually update the TOML file.\n\
+             ------------------------------------------------------------\n\
+            "
+        );
+    }
     if !opts.write {
         print!("{}", doc);
     } else {
