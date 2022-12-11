@@ -108,8 +108,8 @@ macro_rules! tomltest_set {
         tomltest!($name, |mut t: TestCaseState| {
             t.write_file(INITIAL);
             t.cmd.args(["set", &t.filename()]).args($args);
-            check_eq(&$expected, &t.expect_success());
-            check_eq(INITIAL, &t.read_file());
+            check_eq("", &t.expect_success());
+            check_eq(&$expected, &t.read_file());
         });
     };
 }
@@ -131,25 +131,25 @@ y = 1
 "#;
 
 #[rustfmt::skip]
-tomltest_set!(set_string_existing, ["--print", "x.y", "new"], r#"
+tomltest_set!(set_string_existing, ["--write", "x.y", "new"], r#"
 [x]
 y = "new"
 "#);
 
 #[rustfmt::skip]
-tomltest_set!(set_string_existing_table, ["--print", "x.z", "123"], format!(
+tomltest_set!(set_string_existing_table, ["--write", "x.z", "123"], format!(
 r#"{INITIAL}z = "123"
 "#));
 
 #[rustfmt::skip]
-tomltest_set!(set_string_new_table, ["--print", "foo.bar", "baz"], format!(
+tomltest_set!(set_string_new_table, ["--write", "foo.bar", "baz"], format!(
 r#"{INITIAL}
 [foo]
 bar = "baz"
 "#));
 
 #[rustfmt::skip]
-tomltest_set!(set_string_toplevel, ["--print", "foo", "bar"], format!(
+tomltest_set!(set_string_toplevel, ["--write", "foo", "bar"], format!(
 r#"foo = "bar"
 {INITIAL}"#));
 
@@ -159,14 +159,14 @@ r#"foo = "bar"
 // TODO test `set` inside existing array of tables
 
 #[rustfmt::skip]
-tomltest!(set_write, |mut t: TestCaseState| {
+tomltest!(set_print, |mut t: TestCaseState| {
     t.write_file(INITIAL);
-    t.cmd.args(["set", "--write", &t.filename(), "x.y", "new"]);
-    check_eq("", &t.expect_success());
+    t.cmd.args(["set", "--print", &t.filename(), "x.y", "new"]);
     check_eq(r#"
 [x]
 y = "new"
-"#, &t.read_file());
+"#, &t.expect_success());
+    check_eq(INITIAL, &t.read_file());
 });
 
 // TODO the CLI error message for this shows a usage message with a glitch:
