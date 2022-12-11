@@ -47,8 +47,8 @@ enum Args {
     /// Use `--write` to actually write the new version back to the file,
     /// or `--print` to print it to stdout instead.
     ///
-    /// The current default, for legacy reasons, is `--print`.
-    /// A future version will change the default to `--write`.
+    /// For legacy reasons, there is no default; either `--write` or `--print`
+    /// is required.  A future version will change the default to `--write`.
     // Without verbatim_doc_comment, the paragraphs get rewrapped to like
     // 120 columns wide.
     #[structopt(verbatim_doc_comment)]
@@ -84,7 +84,7 @@ struct GetOpts {
 
 #[derive(StructOpt)]
 struct SetOpts {
-    /// (default) Print the new version instead of editing the file
+    /// Print the new version instead of editing the file
     #[structopt(long)]
     #[allow(dead_code)]
     print: bool,
@@ -109,6 +109,10 @@ enum CliError {
 enum SilentError {
     #[error("key not found: {key}")]
     KeyNotFound { key: String },
+
+    // "Silent" because we'll have already printed an error to stderr.
+    #[error("`toml set` requires explicit `--print` or `--write`")]
+    SetNoPrintWrite(),
 }
 
 fn main() {
@@ -256,15 +260,20 @@ fn set(path: &PathBuf, query: &str, value_str: &str, opts: &SetOpts) -> Result<(
 
     if !opts.write && !opts.print {
         // TODO move this to more the CLI-parsing phase
-        // TODO perhaps make fancier warning output
+        // TODO perhaps make fancier error output
         eprint!(
             "------------------------------------------------------------\n\
-             toml: WARNING: the default `toml set` behavior will change\n\
+             toml: ERROR: `toml set` requires explicit `--print` or `--write`\n\
+             toml:\n\
+             toml: The behavior of plain `toml set` is in transition.\n\
              toml: Use an explicit `toml set --print` for the old behavior,\n\
              toml: or `toml set --write` to actually update the TOML file.\n\
+             toml:\n\
+             toml: (In a future version, `--write` will be the default.)\n\
              ------------------------------------------------------------\n\
             "
         );
+        Err(SilentError::SetNoPrintWrite())?;
     }
     if !opts.write {
         print!("{}", doc);

@@ -182,15 +182,15 @@ Edit the file to set some data
 Use `--write` to actually write the new version back to the file,
 or `--print` to print it to stdout instead.
 
-The current default, for legacy reasons, is `--print`.
-A future version will change the default to `--write`.
+For legacy reasons, there is no default; either `--write` or `--print`
+is required.  A future version will change the default to `--write`.
 
 USAGE:
     toml set [FLAGS] <path> <query> <value-str>
 
 FLAGS:
     -h, --help       Prints help information
-        --print      (default) Print the new version instead of editing the file
+        --print      Print the new version instead of editing the file
     -V, --version    Prints version information
         --write      Write the new version back to the file instead of printing it
 

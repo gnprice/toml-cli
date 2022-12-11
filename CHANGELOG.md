@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+* **Breaking**: `toml set` now requires an explicit `--write` or `--print`.
+
+  As a reminder, a future version will change the default behavior of
+  `toml set` to `toml set --write`.  This transitional error behavior exists
+  to help provide a smooth migration from the legacy behavior of `toml set`,
+  which was equivalent to `toml set --print`. (#7)
+
 * **Breaking**: A plain `toml set`, without `--write` or `--print`, now
   emits a warning message to stderr.
 
