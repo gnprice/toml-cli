@@ -42,9 +42,18 @@ enum Args {
         opts: GetOpts,
     },
 
-    /// Edit the file to set some data (currently, just print modified version)
+    /// Edit the file to set some data
+    ///
+    /// Use `--write` to actually write the new version back to the file,
+    /// or `--print` to print it to stdout instead.
+    ///
+    /// The current default, for legacy reasons, is `--print`.
+    /// A future version will change the default to `--write`.
+    // Without verbatim_doc_comment, the paragraphs get rewrapped to like
+    // 120 columns wide.
+    #[structopt(verbatim_doc_comment)]
     Set {
-        /// Path to the TOML file to read
+        /// Path to the TOML file to edit
         #[structopt(parse(from_os_str))]
         path: PathBuf,
 
@@ -53,6 +62,9 @@ enum Args {
 
         /// String value to place at the given spot (bool, array, etc. are TODO)
         value_str: String, // TODO more forms
+
+        #[structopt(flatten)]
+        opts: SetOpts,
     },
     //
     // TODO: append/add (name TBD)
@@ -68,6 +80,18 @@ struct GetOpts {
     // (No effect when the item isn't a string, just like `jq -r`.)
     #[structopt(long, short)]
     raw: bool,
+}
+
+#[derive(StructOpt)]
+struct SetOpts {
+    /// (default) Print the new version instead of editing the file
+    #[structopt(long)]
+    #[allow(dead_code)]
+    print: bool,
+
+    /// Write the new version back to the file instead of printing it
+    #[structopt(long, conflicts_with("print"))]
+    write: bool,
 }
 
 #[derive(Debug, Error)]
@@ -95,7 +119,8 @@ fn main() {
             path,
             query,
             value_str,
-        } => set(&path, &query, &value_str),
+            opts,
+        } => set(&path, &query, &value_str, &opts),
     };
     result.unwrap_or_else(|err| {
         match err.downcast::<SilentError>() {
@@ -183,7 +208,7 @@ fn print_toml_fragment(doc: &Document, tpath: &[TpathSegment]) {
     print!("{}", doc);
 }
 
-fn set(path: &PathBuf, query: &str, value_str: &str) -> Result<(), Error> {
+fn set(path: &PathBuf, query: &str, value_str: &str, opts: &SetOpts) -> Result<(), Error> {
     let tpath = parse_query_cli(query)?.0;
     let mut doc = read_parse(path)?;
 
@@ -229,8 +254,11 @@ fn set(path: &PathBuf, query: &str, value_str: &str) -> Result<(), Error> {
     }
     *item = value(value_str);
 
-    // TODO actually write back
-    print!("{}", doc);
+    if !opts.write {
+        print!("{}", doc);
+    } else {
+        fs::write(path, doc.to_string())?;
+    }
     Ok(())
 }
 

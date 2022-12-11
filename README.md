@@ -177,17 +177,25 @@ ARGS:
 ```
 $ toml set --help
 toml-set 0.2.3
-Edit the file to set some data (currently, just print modified version)
+Edit the file to set some data
+
+Use `--write` to actually write the new version back to the file,
+or `--print` to print it to stdout instead.
+
+The current default, for legacy reasons, is `--print`.
+A future version will change the default to `--write`.
 
 USAGE:
-    toml set <path> <query> <value-str>
+    toml set [FLAGS] <path> <query> <value-str>
 
 FLAGS:
     -h, --help       Prints help information
+        --print      (default) Print the new version instead of editing the file
     -V, --version    Prints version information
+        --write      Write the new version back to the file instead of printing it
 
 ARGS:
-    <path>         Path to the TOML file to read
+    <path>         Path to the TOML file to edit
     <query>        Query within the TOML data (e.g. `dependencies.serde`, `foo[0].bar`)
     <value-str>    String value to place at the given spot (bool, array, etc. are TODO)
 ```

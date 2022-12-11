@@ -109,6 +109,18 @@ macro_rules! tomltest_set {
             t.write_file(INITIAL);
             t.cmd.args(["set", &t.filename()]).args($args);
             check_eq(&$expected, &t.expect_success());
+            check_eq(INITIAL, &t.read_file());
+        });
+    };
+}
+
+macro_rules! tomltest_set_err {
+    ($name:ident, $args:expr, $pattern:expr) => {
+        tomltest!($name, |mut t: TestCaseState| {
+            t.write_file(INITIAL);
+            t.cmd.args(["set", &t.filename()]).args($args);
+            check_contains($pattern, &t.expect_error());
+            check_eq(INITIAL, &t.read_file());
         });
     };
 }
@@ -145,6 +157,32 @@ r#"foo = "bar"
 // TODO test `set` when existing value is an array, table, or array of tables
 // TODO test `set` inside existing array or inline table
 // TODO test `set` inside existing array of tables
+
+#[rustfmt::skip]
+tomltest!(set_write, |mut t: TestCaseState| {
+    t.write_file(INITIAL);
+    t.cmd.args(["set", "--write", &t.filename(), "x.y", "new"]);
+    check_eq("", &t.expect_success());
+    check_eq(r#"
+[x]
+y = "new"
+"#, &t.read_file());
+});
+
+#[rustfmt::skip]
+tomltest_set!(set_print, ["--print", "x.y", "new"], r#"
+[x]
+y = "new"
+"#);
+
+// TODO the CLI error message for this shows a usage message with a glitch:
+//     toml set <path> <query> <value-str> --print --write
+//   (Probably a structopt/clap upstream issue?)
+tomltest_set_err!(
+    set_print_write_conflict,
+    ["--print", "--write", "x.y", "new"],
+    "argument '--print' cannot be used with '--write'"
+);
 
 struct TestCaseState {
     cmd: process::Command,
@@ -200,6 +238,10 @@ impl TestCaseState {
 
     pub fn write_file(&self, contents: &str) {
         fs::write(&self.filename, contents).expect("failed to write test fixture");
+    }
+
+    pub fn read_file(&self) -> String {
+        String::from_utf8(fs::read(&self.filename).unwrap()).unwrap()
     }
 
     pub fn filename(&self) -> String {

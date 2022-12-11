@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+* **Future breaking change**: A future version will change the default
+  behavior of `toml set` from `toml set --print` to `toml set --write`.
+  (Other versions before then may make plain `toml set` emit a warning,
+  or fail with an error.)
+
+  To ensure smooth upgrades in the future, always pass an explicit `--write`
+  or `--print` to `toml set`. (#7)
+
+* `toml set` accepts `--write`, to actually edit the file, or `--print` for
+  the current default behavior. (#7)
 * Started publishing release binaries for Linux.  These have also been
   backfilled for past releases, back to v0.2.1. (#3)
 * Switched from `failure` as a dependency to `anyhow` and `thiserror`,
