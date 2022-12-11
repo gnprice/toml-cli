@@ -5,8 +5,8 @@ use std::str;
 use std::{fs, process::exit};
 
 use anyhow::Error;
+use clap::StructOpt;
 use serde::ser::{Serialize, SerializeMap, SerializeSeq, Serializer};
-use structopt::StructOpt;
 use thiserror::Error;
 use toml_edit::{value, Document, Item, Table, Value};
 
@@ -14,7 +14,7 @@ use query_parser::{parse_query, Query, TpathSegment};
 
 // TODO: Get more of the description in the README into the CLI help.
 #[derive(StructOpt)]
-#[structopt(about)]
+#[structopt(about, version, disable_colored_help = true)]
 enum Args {
     /// Print some data from the file
     ///
@@ -68,6 +68,12 @@ struct GetOpts {
     // (No effect when the item isn't a string, just like `jq -r`.)
     #[structopt(long, short)]
     raw: bool,
+}
+
+#[test]
+fn verify_clap_app() {
+    use clap::IntoApp;
+    Args::into_app().debug_assert()
 }
 
 #[derive(Debug, Error)]

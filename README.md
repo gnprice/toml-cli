@@ -131,13 +131,13 @@ A simple CLI for editing and querying TOML files.
 USAGE:
     toml <SUBCOMMAND>
 
-FLAGS:
-    -h, --help       Prints help information
-    -V, --version    Prints version information
+OPTIONS:
+    -h, --help       Print help information
+    -V, --version    Print version information
 
 SUBCOMMANDS:
     get     Print some data from the file
-    help    Prints this message or the help of the given subcommand(s)
+    help    Print this message or the help of the given subcommand(s)
     set     Edit the file to set some data (currently, just print modified version)
 ```
 
@@ -145,7 +145,7 @@ SUBCOMMANDS:
 
 ```
 $ toml get --help
-toml-get 0.2.3
+toml-get 
 Print some data from the file
 
 Read the given TOML file, find the data within it at the given query,
@@ -159,35 +159,41 @@ string, print it directly.  With `--output-toml`, print the data
 as a fragment of TOML.
 
 USAGE:
-    toml get [FLAGS] <path> <query>
-
-FLAGS:
-    -h, --help           Prints help information
-        --output-toml    Print as a TOML fragment (default: print as JSON)
-    -r, --raw            Print strings raw, not as JSON
-    -V, --version        Prints version information
+    toml get [OPTIONS] <PATH> <QUERY>
 
 ARGS:
-    <path>     Path to the TOML file to read
-    <query>    Query within the TOML data (e.g. `dependencies.serde`, `foo[0].bar`)
+    <PATH>
+            Path to the TOML file to read
+
+    <QUERY>
+            Query within the TOML data (e.g. `dependencies.serde`, `foo[0].bar`)
+
+OPTIONS:
+    -h, --help
+            Print help information
+
+        --output-toml
+            Print as a TOML fragment (default: print as JSON)
+
+    -r, --raw
+            Print strings raw, not as JSON
 ```
 
 ### `toml set`
 
 ```
 $ toml set --help
-toml-set 0.2.3
+toml-set 
 Edit the file to set some data (currently, just print modified version)
 
 USAGE:
-    toml set <path> <query> <value-str>
-
-FLAGS:
-    -h, --help       Prints help information
-    -V, --version    Prints version information
+    toml set <PATH> <QUERY> <VALUE_STR>
 
 ARGS:
-    <path>         Path to the TOML file to read
-    <query>        Query within the TOML data (e.g. `dependencies.serde`, `foo[0].bar`)
-    <value-str>    String value to place at the given spot (bool, array, etc. are TODO)
+    <PATH>         Path to the TOML file to read
+    <QUERY>        Query within the TOML data (e.g. `dependencies.serde`, `foo[0].bar`)
+    <VALUE_STR>    String value to place at the given spot (bool, array, etc. are TODO)
+
+OPTIONS:
+    -h, --help    Print help information
 ```
