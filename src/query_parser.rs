@@ -10,14 +10,14 @@ pub enum TpathSegment {
 }
 
 use nom::{
-    branch::alt,
-    bytes::complete::{escaped_transform, tag, take_while1, take_while_m_n},
-    character::complete::{char, digit1, none_of, one_of},
-    combinator::{all_consuming, map, map_res},
-    error::Error,
-    multi::many0,
-    sequence::{delimited, preceded, tuple},
-    Err, IResult,
+	branch::alt,
+	bytes::complete::{escaped_transform, tag, take_while1, take_while_m_n},
+	character::complete::{char, digit1, none_of, one_of},
+	combinator::{all_consuming, map, map_res},
+	error::Error,
+	multi::many0,
+	sequence::{delimited, preceded, tuple},
+	Err, IResult,
 };
 
 fn hex_unicode_scalar(len: usize, s: &str) -> IResult<&str, char> {
@@ -40,14 +40,14 @@ fn basic_string_escape(s: &str) -> IResult<&str, char> {
 }
 
 fn basic_string(s: &str) -> IResult<&str, String> {
-    let string_body = alt((
-        escaped_transform(none_of("\\\""), '\\', basic_string_escape),
-        // TODO report a nom bug in escaped_transform: it rejects empty sequence.
-        //   https://github.com/Geal/nom/issues/953#issuecomment-525557597
-        //   https://docs.rs/nom/7.1.1/src/nom/bytes/complete.rs.html#570-577
-        map(tag(""), String::from),
-    ));
-    delimited(char('"'), string_body, char('"'))(s)
+	let string_body = alt((
+		escaped_transform(none_of("\\\""), '\\', basic_string_escape),
+		// TODO report a nom bug in escaped_transform: it rejects empty sequence.
+		//   https://github.com/Geal/nom/issues/953#issuecomment-525557597
+		//   https://docs.rs/nom/7.1.1/src/nom/bytes/complete.rs.html#570-577
+		map(tag(""), String::from),
+	));
+	delimited(char('"'), string_body, char('"'))(s)
 }
 
 fn bare_string(s: &str) -> IResult<&str, &str> {
@@ -59,7 +59,7 @@ fn key_string(s: &str) -> IResult<&str, String> {
 }
 
 fn array_index(s: &str) -> IResult<&str, usize> {
-    map_res(digit1, |i: &str| i.parse())(s)
+	map_res(digit1, |i: &str| i.parse())(s)
 }
 
 fn tpath_segment_name(s: &str) -> IResult<&str, TpathSegment> {
@@ -87,35 +87,35 @@ fn tpath(s: &str) -> IResult<&str, Vec<TpathSegment>> {
 }
 
 pub fn parse_query(s: &str) -> Result<Query, Err<Error<&str>>> {
-    all_consuming(tpath)(s).map(|(trailing, res)| {
-        assert!(trailing.is_empty());
-        Query(res)
-    })
+	all_consuming(tpath)(s).map(|(trailing, res)| {
+		assert!(trailing.is_empty());
+		Query(res)
+	})
 }
 
 #[test]
 fn test_parse_query() {
-    use TpathSegment::{Name, Num};
-    let name = |n: &str| Name(n.to_string());
-    for (s, expected) in vec![
-        (".", Ok(vec![])),
-        ("a", Ok(vec![name("a")])),
-        ("a.b", Ok(vec![name("a"), name("b")])),
-        ("\"a.b\"", Ok(vec![name("a.b")])),
-        ("\"\"", Ok(vec![name("")])),
-        ("a.\"\".b", Ok(vec![name("a"), name(""), name("b")])),
-        ("..", Err(())),
-        ("a[1]", Ok(vec![name("a"), Num(1)])),
-        ("a[b]", Err(())),
-        ("a[1].b", Ok(vec![name("a"), Num(1), name("b")])),
-        ("a.b[1]", Ok(vec![name("a"), name("b"), Num(1)])),
-    ] {
-        let actual = parse_query(s);
-        // This could use some slicker check that prints the actual on failure.
-        // Also nice would be to proceed to try the other test cases.
-        match expected {
-            Ok(q) => assert!(q == actual.unwrap().0),
-            Err(_) => assert!(actual.is_err()),
-        }
-    }
+	use TpathSegment::{Name, Num};
+	let name = |n: &str| Name(n.to_string());
+	for (s, expected) in vec![
+		(".", Ok(vec![])),
+		("a", Ok(vec![name("a")])),
+		("a.b", Ok(vec![name("a"), name("b")])),
+		("\"a.b\"", Ok(vec![name("a.b")])),
+		("\"\"", Ok(vec![name("")])),
+		("a.\"\".b", Ok(vec![name("a"), name(""), name("b")])),
+		("..", Err(())),
+		("a[1]", Ok(vec![name("a"), Num(1)])),
+		("a[b]", Err(())),
+		("a[1].b", Ok(vec![name("a"), Num(1), name("b")])),
+		("a.b[1]", Ok(vec![name("a"), name("b"), Num(1)])),
+	] {
+		let actual = parse_query(s);
+		// This could use some slicker check that prints the actual on failure.
+		// Also nice would be to proceed to try the other test cases.
+		match expected {
+			Ok(q) => assert!(q == actual.unwrap().0),
+			Err(_) => assert!(actual.is_err()),
+		}
+	}
 }

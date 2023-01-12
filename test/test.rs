@@ -8,57 +8,57 @@ use std::str;
 use tempfile::TempDir;
 
 macro_rules! tomltest {
-    ($name:ident, $fun:expr) => {
-        #[test]
-        fn $name() {
-            $fun(TestCaseState::new());
-        }
-    };
+	($name:ident, $fun:expr) => {
+		#[test]
+		fn $name() {
+			$fun(TestCaseState::new());
+		}
+	};
 }
 
 macro_rules! tomltest_get_err {
-    ($name:ident, $args:expr, $pattern:expr) => {
-        tomltest!($name, |mut t: TestCaseState| {
-            t.write_file(INPUT);
-            t.cmd.args(["get", &t.filename()]).args($args);
-            check_contains($pattern, &t.expect_error());
-        });
-    };
+	($name:ident, $args:expr, $pattern:expr) => {
+		tomltest!($name, |mut t: TestCaseState| {
+			t.write_file(INPUT);
+			t.cmd.args(["get", &t.filename()]).args($args);
+			check_contains($pattern, &t.expect_error());
+		});
+	};
 }
 
 macro_rules! tomltest_get_err_empty {
-    ($name:ident, $args:expr) => {
-        tomltest!($name, |mut t: TestCaseState| {
-            t.write_file(INPUT);
-            t.cmd.args(["get", &t.filename()]).args($args);
-            check_eq("", &t.expect_error());
-        });
-    };
+	($name:ident, $args:expr) => {
+		tomltest!($name, |mut t: TestCaseState| {
+			t.write_file(INPUT);
+			t.cmd.args(["get", &t.filename()]).args($args);
+			check_eq("", &t.expect_error());
+		});
+	};
 }
 
 macro_rules! tomltest_get {
-    ($name:ident, $args:expr, $expected:expr) => {
-        tomltest!($name, |mut t: TestCaseState| {
-            t.write_file(INPUT);
-            t.cmd.args(["get", &t.filename()]).args($args);
-            check_eq($expected, &t.expect_success());
-        });
-    };
+	($name:ident, $args:expr, $expected:expr) => {
+		tomltest!($name, |mut t: TestCaseState| {
+			t.write_file(INPUT);
+			t.cmd.args(["get", &t.filename()]).args($args);
+			check_eq($expected, &t.expect_success());
+		});
+	};
 }
 
 macro_rules! tomltest_get1 {
-    ($name:ident, $key:expr, $expected:expr) => {
-        tomltest!($name, |mut t: TestCaseState| {
-            t.write_file(INPUT);
-            t.cmd.args(["get", &t.filename(), $key]);
-            let expected = format!("{}\n", serde_json::to_string(&$expected).unwrap());
-            check_eq(&expected, &t.expect_success());
-        });
-    };
+	($name:ident, $key:expr, $expected:expr) => {
+		tomltest!($name, |mut t: TestCaseState| {
+			t.write_file(INPUT);
+			t.cmd.args(["get", &t.filename(), $key]);
+			let expected = format!("{}\n", serde_json::to_string(&$expected).unwrap());
+			check_eq(&expected, &t.expect_success());
+		});
+	};
 }
 
 tomltest!(help_if_no_args, |mut t: TestCaseState| {
-    check_contains("-h, --help", &t.expect_error());
+	check_contains("-h, --help", &t.expect_error());
 });
 
 const INPUT: &str = r#"
@@ -104,13 +104,13 @@ tomltest_get_err_empty!(get_missing, ["nosuchkey"]);
 tomltest_get_err_empty!(get_missing_num, ["key[1]"]);
 
 macro_rules! tomltest_set {
-    ($name:ident, $args:expr, $expected:expr) => {
-        tomltest!($name, |mut t: TestCaseState| {
-            t.write_file(INITIAL);
-            t.cmd.args(["set", &t.filename()]).args($args);
-            check_eq(&$expected, &t.expect_success());
-        });
-    };
+	($name:ident, $args:expr, $expected:expr) => {
+		tomltest!($name, |mut t: TestCaseState| {
+			t.write_file(INITIAL);
+			t.cmd.args(["set", &t.filename()]).args($args);
+			check_eq(&$expected, &t.expect_success());
+		});
+	};
 }
 
 const INITIAL: &str = r#"
@@ -147,65 +147,65 @@ r#"foo = "bar"
 // TODO test `set` inside existing array of tables
 
 struct TestCaseState {
-    cmd: process::Command,
-    #[allow(dead_code)] // We keep the TempDir around to prolong its lifetime
-    dir: TempDir,
-    filename: PathBuf,
+	cmd: process::Command,
+	#[allow(dead_code)] // We keep the TempDir around to prolong its lifetime
+	dir: TempDir,
+	filename: PathBuf,
 }
 
 impl TestCaseState {
-    pub fn new() -> Self {
-        let cmd = process::Command::new(env!("CARGO_BIN_EXE_toml"));
-        let dir = tempfile::tempdir().expect("failed to create tempdir");
-        let filename = dir.path().join("test.toml");
-        TestCaseState { cmd, dir, filename }
-    }
+	pub fn new() -> Self {
+		let cmd = process::Command::new(env!("CARGO_BIN_EXE_toml"));
+		let dir = tempfile::tempdir().expect("failed to create tempdir");
+		let filename = dir.path().join("test.toml");
+		TestCaseState { cmd, dir, filename }
+	}
 
-    pub fn expect_success(&mut self) -> String {
-        let out = self.cmd.output().unwrap();
-        if !out.status.success() {
-            self.fail(&out, "Command failed!");
-        } else if !out.stderr.is_empty() {
-            self.fail(&out, "Command printed to stderr despite success");
-        }
-        String::from_utf8(out.stdout).unwrap()
-    }
+	pub fn expect_success(&mut self) -> String {
+		let out = self.cmd.output().unwrap();
+		if !out.status.success() {
+			self.fail(&out, "Command failed!");
+		} else if !out.stderr.is_empty() {
+			self.fail(&out, "Command printed to stderr despite success");
+		}
+		String::from_utf8(out.stdout).unwrap()
+	}
 
-    pub fn expect_error(&mut self) -> String {
-        let out = self.cmd.output().unwrap();
-        if out.status.success() {
-            self.fail(&out, "Command succeeded; expected failure");
-        } else if !out.stdout.is_empty() {
-            self.fail(&out, "Command printed to stdout despite failure");
-        }
-        String::from_utf8(out.stderr).unwrap()
-    }
+	pub fn expect_error(&mut self) -> String {
+		let out = self.cmd.output().unwrap();
+		if out.status.success() {
+			self.fail(&out, "Command succeeded; expected failure");
+		} else if !out.stdout.is_empty() {
+			self.fail(&out, "Command printed to stdout despite failure");
+		}
+		String::from_utf8(out.stderr).unwrap()
+	}
 
-    fn fail(&self, out: &Output, summary: &str) {
-        panic!(
-            "\n============\
+	fn fail(&self, out: &Output, summary: &str) {
+		panic!(
+			"\n============\
              \n{}\
              \ncmdline: {:?}\
              \nstatus: {}\
              \nstderr: {}\
              \nstdout: {}\
              \n============\n",
-            summary,
-            self.cmd,
-            out.status,
-            String::from_utf8_lossy(&out.stderr),
-            String::from_utf8_lossy(&out.stdout),
-        )
-    }
+			summary,
+			self.cmd,
+			out.status,
+			String::from_utf8_lossy(&out.stderr),
+			String::from_utf8_lossy(&out.stdout),
+		)
+	}
 
-    pub fn write_file(&self, contents: &str) {
-        fs::write(&self.filename, contents).expect("failed to write test fixture");
-    }
+	pub fn write_file(&self, contents: &str) {
+		fs::write(&self.filename, contents).expect("failed to write test fixture");
+	}
 
-    pub fn filename(&self) -> String {
-        // TODO we don't really need a String here, do we?
-        String::from(self.filename.as_os_str().to_str().unwrap())
-    }
+	pub fn filename(&self) -> String {
+		// TODO we don't really need a String here, do we?
+		String::from(self.filename.as_os_str().to_str().unwrap())
+	}
 }
 
 /// Like `assert!(actual.contains(pattern))`, but with more informative output.
