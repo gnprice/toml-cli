@@ -101,7 +101,7 @@ fn main() {
         match err.downcast::<SilentError>() {
             Ok(_) => {}
             Err(err) => {
-                eprintln!("toml: {}", err);
+                eprintln!("toml: {err}");
             }
         }
         exit(1);
@@ -180,7 +180,7 @@ fn print_toml_fragment(doc: &Document, tpath: &[TpathSegment]) {
         }
     }
     let doc = Document::from(item.into_table().unwrap());
-    print!("{}", doc);
+    print!("{doc}");
 }
 
 fn set(path: &PathBuf, query: &str, value_str: &str) -> Result<(), Error> {
@@ -230,7 +230,7 @@ fn set(path: &PathBuf, query: &str, value_str: &str) -> Result<(), Error> {
     *item = value(value_str);
 
     // TODO actually write back
-    print!("{}", doc);
+    print!("{doc}");
     Ok(())
 }
 
