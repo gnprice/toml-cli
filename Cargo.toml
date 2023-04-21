@@ -23,7 +23,7 @@ serde = "1.0"
 serde_json = "1.0"
 structopt = "0.3"
 thiserror = "1.0.37"
-toml_edit = "0.17"
+toml_edit = "0.19"
 
 [dev-dependencies]
 tempfile = "3.3.0"
