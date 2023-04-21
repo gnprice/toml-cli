@@ -23,11 +23,11 @@ jobs:
           components: clippy, rustfmt
 
       - name: Install Rust tooling
-        uses: taiki-e/install-action@v1
+        uses: taiki-e/install-action@v2
         with:
           tool: nextest
 
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Cargo fmt
         uses: actions-rs/cargo@v1
