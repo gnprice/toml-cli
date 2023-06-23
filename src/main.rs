@@ -54,6 +54,16 @@ enum Args {
         /// String value to place at the given spot (bool, array, etc. are TODO)
         value_str: String, // TODO more forms
     },
+
+    /// Edit the file to delete some data (currently, just print modified version)
+    Del {
+        /// Path to the TOML file to read
+        #[structopt(parse(from_os_str))]
+        path: PathBuf,
+
+        /// Query within the TOML data (e.g. `dependencies.serde`, `foo[0].bar`)
+        query: String,
+    },
     //
     // TODO: append/add (name TBD)
 }
@@ -96,6 +106,7 @@ fn main() {
             query,
             value_str,
         } => set(&path, &query, &value_str),
+        Args::Del { path, query } => del(&path, &query),
     };
     result.unwrap_or_else(|err| {
         match err.downcast::<SilentError>() {
@@ -234,6 +245,58 @@ fn set(path: &PathBuf, query: &str, value_str: &str) -> Result<(), Error> {
     Ok(())
 }
 
+fn del(path: &PathBuf, query: &str) -> Result<(), Error> {
+    let tpath = parse_query_cli(query)?.0;
+    let mut doc = read_parse(path)?;
+
+    let (parent, last) = match &tpath[..] {
+        [] => Err(SilentError::KeyNotFound { key: query.into() }),
+        [parent_path @ .., last] => Ok((walk_tpath_mut(doc.as_item_mut(), parent_path), last)),
+    }?;
+    let parent = parent.ok_or(SilentError::KeyNotFound { key: query.into() })?;
+    match parent {
+        Item::Value(Value::Array(array)) => match last {
+            TpathSegment::Num(i) => {
+                if *i < array.len() {
+                    array.remove(*i);
+                    Ok(())
+                } else {
+                    Err(CliError::ArrayIndexOob())
+                }
+            }
+            TpathSegment::Name(_) => Err(CliError::ArrayIndexOob()),
+        }
+        Item::Value(Value::InlineTable(table)) => match last {
+            TpathSegment::Name(key) => {
+                table.remove(key);
+                Ok(())
+            }
+            TpathSegment::Num(_) => Err(CliError::NotArray()),
+        }
+        Item::Table(table) => match last {
+            TpathSegment::Name(key) => {
+                table.remove(key);
+                Ok(())
+            }
+            TpathSegment::Num(_) => Err(CliError::NotArray()),
+        }
+        Item::ArrayOfTables(array) => match last {
+            TpathSegment::Num(i) => {
+                if *i < array.len() {
+                    Ok(array.remove(*i))
+                } else {
+                    Err(CliError::ArrayIndexOob())
+                }
+            }
+            TpathSegment::Name(_) => Err(CliError::ArrayIndexOob()),
+        }
+        Item::None | Item::Value(_) => Err(SilentError::KeyNotFound { key: query.into() })?,
+    }?;
+    // TODO actually write back
+    print!("{}", doc);
+    Ok(())
+}
+
 fn parse_query_cli(query: &str) -> Result<Query, CliError> {
     parse_query(query).map_err(|_err| {
         CliError::QuerySyntaxError(query.into()) // TODO: perhaps use parse-error details?
@@ -249,6 +312,20 @@ fn walk_tpath<'a>(
         match seg {
             Name(n) => item = item.get(n)?,
             Num(n) => item = item.get(n)?,
+        }
+    }
+    Some(item)
+}
+
+fn walk_tpath_mut<'a>(
+    mut item: &'a mut toml_edit::Item,
+    tpath: &[TpathSegment],
+) -> Option<&'a mut toml_edit::Item> {
+    use TpathSegment::{Name, Num};
+    for seg in tpath {
+        match seg {
+            Name(n) => item = item.get_mut(n)?,
+            Num(n) => item = item.get_mut(n)?,
         }
     }
     Some(item)
