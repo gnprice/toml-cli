@@ -104,42 +104,112 @@ tomltest_get_err_empty!(get_missing, ["nosuchkey"]);
 tomltest_get_err_empty!(get_missing_num, ["key[1]"]);
 
 macro_rules! tomltest_set {
-    ($name:ident, $args:expr, $expected:expr) => {
+    ($name:ident, $args:expr, $expected:literal) => {
         tomltest!($name, |mut t: TestCaseState| {
-            t.write_file(INITIAL);
+            t.write_file(&("\n".to_owned() + INITIAL + "\n"));
             t.cmd.args(["set", &t.filename()]).args($args);
-            check_eq(&$expected, &t.expect_success());
+            check_eq(&format!($expected), &t.expect_success());
         });
     };
 }
 
-const INITIAL: &str = r#"
+const INITIAL: &str = "[x]\ny = 1";
+
+tomltest_set!(
+    set_auto_string_replace_existing,
+    ["x.y", "update"],
+    r#"
 [x]
-y = 1
-"#;
+y = "update"
+"#
+);
 
-#[rustfmt::skip]
-tomltest_set!(set_string_existing, ["x.y", "new"], r#"
-[x]
-y = "new"
-"#);
+tomltest_set!(
+    set_auto_string_extend_existing,
+    ["x.z", "new"],
+    r#"
+{INITIAL}
+z = "new"
+"#
+);
 
-#[rustfmt::skip]
-tomltest_set!(set_string_existing_table, ["x.z", "123"], format!(
-r#"{INITIAL}z = "123"
-"#));
+tomltest_set!(
+    set_auto_string_new_table,
+    ["foo.bar", "baz"],
+    r#"
+{INITIAL}
 
-#[rustfmt::skip]
-tomltest_set!(set_string_new_table, ["foo.bar", "baz"], format!(
-r#"{INITIAL}
 [foo]
 bar = "baz"
-"#));
+"#
+);
 
-#[rustfmt::skip]
-tomltest_set!(set_string_toplevel, ["foo", "bar"], format!(
-r#"foo = "bar"
-{INITIAL}"#));
+tomltest_set!(
+    set_auto_string_new_toplevel,
+    ["foo", "bar"],
+    r#"foo = "bar"
+
+{INITIAL}
+"#
+);
+
+tomltest_set!(
+    set_auto_bool_replace_existing,
+    ["x.y", "true"],
+    r#"
+[x]
+y = true
+"#
+);
+
+tomltest_set!(
+    set_auto_string_array_replace_existing,
+    ["x.y", r#"["a", "b"]"#],
+    r#"
+[x]
+y = ["a", "b"]
+"#
+);
+
+tomltest_set!(
+    set_require_string_for_intlike_value,
+    ["x.y", "2", "--type", "string"],
+    r#"
+[x]
+y = "2"
+"#
+);
+
+tomltest_set!(
+    set_auto_string_with_quoted_string,
+    ["x.y", r#""update""#],
+    r#"
+[x]
+y = "\"update\""
+"#
+);
+
+macro_rules! tomltest_set_err {
+    ($name:ident, $args:expr, $pattern:expr) => {
+        tomltest!($name, |mut t: TestCaseState| {
+            t.write_file(&("\n".to_owned() + INITIAL + "\n"));
+            t.cmd.args(["set", &t.filename()]).args($args);
+            check_contains($pattern, &t.expect_error());
+        });
+    };
+}
+
+tomltest_set_err!(
+    set_require_int_got_string,
+    ["x.y", "foo", "--type", "int"],
+    "toml: value type does not match required type"
+);
+
+tomltest_set_err!(
+    set_require_bool_got_int,
+    ["x.y", "2", "--type", "boolean"],
+    "toml: value type does not match required type"
+);
 
 // TODO test `set` on string with newlines and other fun characters
 // TODO test `set` when existing value is an array, table, or array of tables

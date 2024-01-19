@@ -1,7 +1,7 @@
 mod query_parser;
 
 use std::path::PathBuf;
-use std::str;
+use std::str::{self, FromStr};
 use std::{fs, process::exit};
 
 use anyhow::Error;
@@ -51,8 +51,15 @@ enum Args {
         /// Query within the TOML data (e.g. `dependencies.serde`, `foo[0].bar`)
         query: String,
 
-        /// String value to place at the given spot (bool, array, etc. are TODO)
-        value_str: String, // TODO more forms
+        /// Value to place at the given spot. Treated as a string if it cannot
+        /// be parsed as a non-string TOML type. Specify `--type` to enforce a
+        /// specific type.
+        value_str: String,
+
+        /// Require the value to parse as a specific type. See
+        /// `Value::type_name()` for values.
+        #[structopt(name = "type", long)]
+        required_type: Option<String>,
     },
     //
     // TODO: append/add (name TBD)
@@ -78,6 +85,8 @@ enum CliError {
     NotArray(),
     #[error("array index out of bounds")]
     ArrayIndexOob(),
+    #[error("value type does not match required type")]
+    TypeMismatch(),
 }
 
 /// An error that should cause a failure exit, but no message on stderr.
@@ -95,7 +104,8 @@ fn main() {
             path,
             query,
             value_str,
-        } => set(&path, &query, &value_str),
+            required_type,
+        } => set(&path, &query, &value_str, &required_type),
     };
     result.unwrap_or_else(|err| {
         match err.downcast::<SilentError>() {
@@ -183,7 +193,14 @@ fn print_toml_fragment(doc: &Document, tpath: &[TpathSegment]) {
     print!("{}", doc);
 }
 
-fn set(path: &PathBuf, query: &str, value_str: &str) -> Result<(), Error> {
+fn set(
+    path: &PathBuf,
+    query: &str,
+    value_str: &str,
+    required_type: &Option<String>,
+) -> Result<(), Error> {
+    let valval = parse_value(value_str, required_type)?;
+
     let tpath = parse_query_cli(query)?.0;
     let mut doc = read_parse(path)?;
 
@@ -227,7 +244,7 @@ fn set(path: &PathBuf, query: &str, value_str: &str) -> Result<(), Error> {
             }
         }
     }
-    *item = value(value_str);
+    *item = valval;
 
     // TODO actually write back
     print!("{}", doc);
@@ -252,6 +269,26 @@ fn walk_tpath<'a>(
         }
     }
     Some(item)
+}
+
+fn parse_value(value_str: &str, required_type: &Option<String>) -> Result<Item, Error> {
+    Ok(match required_type.as_deref() {
+        None => match Value::from_str(value_str) {
+            Ok(Value::String(_)) => value(value_str),
+            Ok(v) => value(v),
+            Err(_) => value(value_str),
+        },
+        Some("string") => value(value_str),
+        Some(type_name) => Value::from_str(value_str)
+            .map_err(|_| CliError::TypeMismatch())
+            .and_then(|v| {
+                if v.type_name() == type_name {
+                    Ok(value(v))
+                } else {
+                    Err(CliError::TypeMismatch())
+                }
+            })?,
+    })
 }
 
 // TODO Can we do newtypes more cleanly than this?
