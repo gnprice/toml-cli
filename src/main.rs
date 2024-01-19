@@ -42,7 +42,10 @@ enum Args {
         opts: GetOpts,
     },
 
-    /// Edit the file to set some data (currently, just print modified version)
+    /// Edit the file to set some data.
+    ///
+    /// Specify `--write`/`-w` to write back to the input file, otherwise the
+    /// modified file is printed.
     Set {
         /// Path to the TOML file to read
         #[structopt(parse(from_os_str))]
@@ -53,6 +56,10 @@ enum Args {
 
         /// String value to place at the given spot (bool, array, etc. are TODO)
         value_str: String, // TODO more forms
+
+        /// Write back to file
+        #[structopt(short, long)]
+        write: bool,
     },
     //
     // TODO: append/add (name TBD)
@@ -95,7 +102,8 @@ fn main() {
             path,
             query,
             value_str,
-        } => set(&path, &query, &value_str),
+            write,
+        } => set(&path, &query, &value_str, write),
     };
     result.unwrap_or_else(|err| {
         match err.downcast::<SilentError>() {
@@ -183,7 +191,7 @@ fn print_toml_fragment(doc: &Document, tpath: &[TpathSegment]) {
     print!("{}", doc);
 }
 
-fn set(path: &PathBuf, query: &str, value_str: &str) -> Result<(), Error> {
+fn set(path: &PathBuf, query: &str, value_str: &str, write: bool) -> Result<(), Error> {
     let tpath = parse_query_cli(query)?.0;
     let mut doc = read_parse(path)?;
 
@@ -229,8 +237,12 @@ fn set(path: &PathBuf, query: &str, value_str: &str) -> Result<(), Error> {
     }
     *item = value(value_str);
 
-    // TODO actually write back
-    print!("{}", doc);
+    if write {
+        fs::write(path, doc.to_string())?;
+    } else {
+        print!("{}", doc);
+    }
+
     Ok(())
 }
 

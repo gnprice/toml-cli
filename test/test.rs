@@ -104,11 +104,17 @@ tomltest_get_err_empty!(get_missing, ["nosuchkey"]);
 tomltest_get_err_empty!(get_missing_num, ["key[1]"]);
 
 macro_rules! tomltest_set {
-    ($name:ident, $args:expr, $expected:expr) => {
+    ($name:ident, $name_w:ident, $args:expr, $expected:expr) => {
         tomltest!($name, |mut t: TestCaseState| {
             t.write_file(INITIAL);
             t.cmd.args(["set", &t.filename()]).args($args);
             check_eq(&$expected, &t.expect_success());
+        });
+        tomltest!($name_w, |mut t: TestCaseState| {
+            t.write_file(INITIAL);
+            t.cmd.args(["set", "-w", &t.filename()]).args($args);
+            check_eq("", &t.expect_success());
+            check_eq(&$expected, &t.read_file());
         });
     };
 }
@@ -119,25 +125,26 @@ y = 1
 "#;
 
 #[rustfmt::skip]
-tomltest_set!(set_string_existing, ["x.y", "new"], r#"
+tomltest_set!(set_string_existing, set_string_existing_and_write, ["x.y", "new"], r#"
 [x]
 y = "new"
 "#);
 
 #[rustfmt::skip]
-tomltest_set!(set_string_existing_table, ["x.z", "123"], format!(
+tomltest_set!(set_string_existing_table, set_string_existing_table_and_write, ["x.z", "123"], 
+format!(
 r#"{INITIAL}z = "123"
 "#));
 
 #[rustfmt::skip]
-tomltest_set!(set_string_new_table, ["foo.bar", "baz"], format!(
+tomltest_set!(set_string_new_table, set_string_new_table_and_write, ["foo.bar", "baz"], format!(
 r#"{INITIAL}
 [foo]
 bar = "baz"
 "#));
 
 #[rustfmt::skip]
-tomltest_set!(set_string_toplevel, ["foo", "bar"], format!(
+tomltest_set!(set_string_toplevel, set_string_toplevel_and_write, ["foo", "bar"], format!(
 r#"foo = "bar"
 {INITIAL}"#));
 
@@ -179,6 +186,13 @@ impl TestCaseState {
             self.fail(&out, "Command printed to stdout despite failure");
         }
         String::from_utf8(out.stderr).unwrap()
+    }
+
+    pub fn read_file(&self) -> String {
+        let data = fs::read(&self.filename).expect("failed to read test fixture");
+        str::from_utf8(data.as_slice())
+            .expect("test fixture was not valid utf-8")
+            .to_owned()
     }
 
     fn fail(&self, out: &Output, summary: &str) {
